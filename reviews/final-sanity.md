@@ -1,23 +1,21 @@
-# Final sanity report
+# Final Sanity Report
 
 ## Verdict
-**Ready to ship.**
+Ready to ship, with one small housekeeping fix applied during QA: runtime outputs under `.dreaming/` are now ignored by git.
 
-## Checks run
-- `pytest -q` ✅
-- Reviewed `README.md`, `brief.md`, and `specs/mvp-implementation-plan.md` ✅
-- Audited package metadata in `pyproject.toml` ✅
-- Scanned for obvious leaked personal paths, secrets, and stale claims ✅
+## Checks Run
+- `pytest -q` → passed
+- `python -m build --wheel` → passed
+- `PYTHONPATH=src python -m hermes_dreaming.cli status --artifact-root /tmp/hermes-dreaming-smoke-artifacts` → passed
+- `PYTHONPATH=src python -m hermes_dreaming.cli create --live-root <tmp>/live --artifact-root <tmp>/artifacts --source <tmp>/src` → passed, staged artifact created and validated
+- `git check-ignore -v .dreaming/artifacts .dreaming/backups .dreaming/discarded` → passed after the `.gitignore` update
 
-## Issues found and fixed
-- `__init__.py` had an import cycle through `cli.py`, which broke package imports. Fixed by removing the eager CLI import.
-- README artifact layout mentioned patch files that the implementation didn't use. Updated the docs to match the actual `manifest.json` + `REPORT.md` + `sources.jsonl` + `proposals.jsonl` layout.
-- The implementation plan still described an older single-JSON artifact format. Updated the plan to match the directory-based artifact that the repo now uses.
+## Issues Found
+1. `.dreaming/` runtime output root was not ignored by git, which meant a default CLI run could dirty the repo with generated artifacts and backups.
+   - Fixed by adding `.dreaming/` to `.gitignore`.
 
-## Notes
-- The repo is cleanly scoped as a staged artifact engine, not a background mutation system.
-- No secrets, hardcoded personal paths, or embarrassing repo claims were found.
-- Packaging metadata looks sane, with a normal console script entry point and a minimal dependency set.
+## Non-Blocking Notes
+- Running the package as `python -m hermes_dreaming.cli` from the raw source tree needs `PYTHONPATH=src`; the intended release path is the installed `dreaming` console script.
 
-## Ship readiness
-**Yes.** The repo is in a good state to ship as-is.
+## Ship Readiness
+Yes, the repo is in ship-ready shape for the current MVP contract.

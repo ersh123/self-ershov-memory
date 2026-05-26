@@ -11,4 +11,5 @@ dist/
 htmlcov/
 *.egg-info/
 *.log
+.dreaming/
 .DS_Store

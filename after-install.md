@@ -1,15 +1,11 @@
 # hermes-dreaming installed
 
-The `hermes-dreaming` plugin is now available inside Hermes as:
+The `hermes-dreaming` plugin is now available inside Hermes. Start with:
 
 ```bash
-hermes dreaming --help
+hermes dreaming review --help
 ```
 
-If you want the shortest path, start with:
+If you want the raw entry point instead, use `hermes dreaming create --help`.
 
-```bash
-hermes dreaming create --help
-```
-
-This plugin also bundles a Hermes skill for the staged review workflow. Load it as `hermes-dreaming:dreaming` if you want the guided workflow inside Hermes.
+This plugin also bundles a Hermes skill named `dreaming`. Load it as `dreaming` inside Hermes if you want the guided workflow.

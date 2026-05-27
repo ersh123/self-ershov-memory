@@ -32,7 +32,10 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] `python -m pip install build` if needed
 - [ ] `python -m build --wheel`
 - [ ] Smoke the CLI with `dreaming status`
-- [ ] Smoke `dreaming create`, `validate`, `apply`, and `discard` on temp fixtures
+- [ ] Smoke `dreaming create`, `review`, `diff`, `validate`, `apply`, and `discard` on temp fixtures
+- [ ] Smoke `dreaming compact` on terminal artifacts
+- [ ] Smoke `dreaming install-cron`
+- [ ] Smoke `dreaming update --check` and the real `dreaming update --no-verify` path on a disposable repo
 
 ## 5. Release gate
 

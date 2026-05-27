@@ -26,7 +26,7 @@ hermes plugins install file:///path/to/hermes-dreaming --enable
 Once installed, use:
 
 ```bash
-hermes dreaming --help
+hermes dreaming review --help
 ```
 
 Update the installed checkout with:
@@ -37,7 +37,7 @@ hermes dreaming update
 
 Use `hermes dreaming update --check` if you only want the status check.
 
-The plugin also bundles a Hermes skill for the staged review workflow as `hermes-dreaming:dreaming`.
+The plugin also bundles a Hermes skill named `dreaming`. Load that bare name inside Hermes if you want the guided staged workflow.
 
 ## Current status
 
@@ -98,6 +98,12 @@ dreaming update
 dreaming update --check
 ```
 
+### Command notes
+
+- `create` and `review` accept repeatable `--source` plus optional `--provider`, `--model`, `--api-key`, and `--base-url`.
+- `apply` accepts repeatable `--approve` values, including `all`.
+- `update` supports `--remote`, `--branch`, `--check`, and `--no-verify`.
+
 ## Dream markers
 
 The offline provider looks for explicit `DREAM:` lines in the source bundle.
@@ -129,6 +135,7 @@ The artifact is intentionally simple, deterministic, and easy to review on disk 
 - `specs/mvp-implementation-plan.md` describes the current implementation contract and package layout
 - `docs/release-checklist.md` is the pre-release checklist
 - `reviews/final-sanity.md` records the most recent QA pass
+- `research/upstream-overlap.md` captures the upstream overlap notes and references
 
 ## Contributing
 

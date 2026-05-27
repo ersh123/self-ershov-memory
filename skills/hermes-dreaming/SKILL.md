@@ -22,10 +22,13 @@ Hermes-dreaming scans explicit source inputs, stages proposed changes in an arti
 
 ```bash
 dreaming create --live-root ./live --artifact-root ./artifacts --source ./sources
+dreaming review --live-root ./live --artifact-root ./artifacts --source ./sources
 dreaming diff ./artifacts/<artifact-id>
 dreaming validate ./artifacts/<artifact-id> --live-root ./live
 dreaming apply ./artifacts/<artifact-id> --live-root ./live --backup-root ./backups --approve all
 dreaming discard ./artifacts/<artifact-id> --archive-root ./archive
+dreaming compact --artifact-root ./artifacts --archive-root ./archive
+dreaming install-cron --schedule "0 3 * * *"
 dreaming status --artifact-root ./artifacts
 dreaming update
 ```
@@ -37,6 +40,10 @@ dreaming update
 3. Use `diff` and `validate` before `apply`.
 4. Use `apply` only after human approval.
 5. Use `discard` when the staged proposal is wrong or stale.
+
+## Fast path
+
+If you want the safest short workflow, use `review` first, then `diff`, `validate`, and `apply` only after the staged artifact looks right.
 
 ## Dream marker format
 

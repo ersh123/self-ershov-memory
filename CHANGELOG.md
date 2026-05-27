@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — 2026-05-26
 
 - Added a safe `dreaming update` command for fast-forward plugin updates with dirty-tree protection and optional pytest verification.
 - Added a proper Hermes plugin wrapper so the repo can install as `hermes-dreaming`.

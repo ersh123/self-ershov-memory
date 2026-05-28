@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 - 2026-05-28
+
+- Added the review decision loop: `summarize`, `approve`, `reject`, and `review --open`.
+- Hardened provider output validation so malformed proposals fail closed instead of sneaking into artifacts.
+- Added provenance checks so proposals must cite the source bundle instead of fabricated paths.
+- Added a deterministic local digest generator with priority scoring, change-since-last-dream summaries, and optional weekly rollups.
+- Added onboarding docs, install/update guidance, persona examples, and a safety page that spells out what Dreaming can and cannot mutate.
+- Added `dreaming report-card` as a redacted shareable phase-7 slice with JSON output support.
+- Added live-memory policy guardrails around idempotence and capacity.
+
 ## 0.1.1 - 2026-05-27
 
 - Added real `dreaming diff` output with unified diffs against `--live-root` or the artifact workspace root.

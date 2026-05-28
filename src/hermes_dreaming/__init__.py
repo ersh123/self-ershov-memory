@@ -12,7 +12,7 @@ from . import session_reader
 from .artifact import DreamArtifact, DreamProposal, SourceSnapshot
 
 __all__ = ["DreamArtifact", "DreamProposal", "SourceSnapshot", "__version__", "register", "session_reader"]
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 
 def _repo_root() -> Path:

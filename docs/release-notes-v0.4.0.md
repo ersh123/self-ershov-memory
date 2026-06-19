@@ -25,7 +25,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 
 ### Discovery and inbox
 
-- **`ershov providers list`** prints a table with `NAME`, `KIND`, `STATUS` (always | optional | missing), and `NOTES` for the built-in providers. No external services are pinged.
+- **`ershov providers list`** prints a table with `NAME`, `KIND`, `STATUS` (always | optional | missing), and `NOTES` for the built-in providers (`offline-marker`, `openai-compatible`, `deepseek`, `openrouter`, `ollama`). No external services are pinged.
 - **`ershov inbox --apply-ready`** filters to artifacts where every non-rejected proposal is approved (or already applied) and the artifact is in `staged`, `approved`, or `applied` status. Composes with `--state` and `--priority`.
 - The **inbox digest** (`ershov digest --inbox`) now surfaces a "Ready to apply" section and an `Apply-ready count` field at the top.
 
@@ -56,7 +56,7 @@ A third field, `dry_run_report`, is attached in-memory only during a single appl
 
 ## Verification
 
-- `pytest -q` passes (180 tests).
+- `pytest -q` passes (182 tests).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `git diff --check` clean.

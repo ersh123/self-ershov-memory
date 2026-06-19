@@ -13,11 +13,11 @@ The current MVP includes:
 - `apply --dry-run`, `apply --priority`, `apply --target-kind` for selective and preview-only applies
 - `inbox --apply-ready` to surface artifacts that are unblocked
 - `create --from-sessions N` / `--from-since 7d` (and the `--recent` alias) for friction-killer session harvesting with redacted bundle output
-- `--no-llm` shorthand for `--provider offline-marker` on `create` and `review`
+- `--no-llm` shorthand for `--provider offline-marker` on `create`, `review`, and `nightly`
 - a directory-based artifact format with `manifest.json`, `REPORT.md`, `sources.jsonl`, `proposals.jsonl`, `audit.jsonl`, and `REVERT.md` (after revert)
-- deterministic offline proposal extraction from explicit `MEMORY:` markers
-- an optional OpenAI-compatible provider behind the `llm` extra
-- an optional Ollama provider that targets a local server
+- deterministic offline proposal extraction from explicit `MEMORY:` / `DREAM:` markers
+- OpenAI-compatible providers behind the `llm` extra: generic `openai-compatible`, DeepSeek, and OpenRouter
+- an Ollama provider that targets a local server
 - validation for path safety, duplicate targets, provenance, and secret-like content
 - backups before apply, plus explicit discard/archive behavior
 - reject reason enforcement at the command layer (not just the CLI)
@@ -114,7 +114,7 @@ Marks the artifact discarded and moves it into the archive root without touching
 Lists known artifacts in the artifact root.
 
 ### `ershov providers list`
-Prints a table of the three built-in providers (`offline-marker`, `openai-compatible`, `ollama`) with their `STATUS` (always, optional, missing) and `NOTES`. Does not ping external services.
+Prints a table of the built-in providers (`offline-marker`, `openai-compatible`, `deepseek`, `openrouter`, `ollama`) with their `STATUS` (always, optional, missing) and `NOTES`. Does not ping external services.
 
 ## Artifact format
 

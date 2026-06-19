@@ -44,7 +44,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 - **Per-write post-apply shas** are now stored in `backup_records` on successful apply and used by revert drift detection, so a normal apply→revert is not mislabeled as drift while operator edits after apply still are.
 - **Legacy revert evidence** is now labeled as `legacy-degraded` when an old artifact lacks post-apply shas and revert has to infer drift from backup-vs-live comparison.
 - **Provider quote grounding** now rejects schema-valid model proposals whose `source_quote` or `snippet` does not match a cited source line, closing the easy "valid JSON, invented evidence" path.
-- **`ershov status --release-gate`** now renders the strict systemd stable gate inline: current commit, dirty state, timer next elapse, matching scheduled runs, recent failures, and exact blockers.
+- **`ershov status --release-gate`** now renders the strict systemd stable gate inline: current commit, dirty state, last nightly run, last successful nightly, last failed nightly, timer next elapse, timer-visible provider readiness, matching scheduled runs, recent failures, and exact blockers.
 - The root Hermes plugin wrapper now propagates non-zero CLI failures, so `hermes ershov ...` can be used as a real shell gate instead of only a human-readable wrapper.
 
 ## Data model
@@ -65,9 +65,9 @@ Three additive fields on `DreamArtifact`:
 
 ## Verification
 
-- `pytest -q` passes (229 tests).
+- `pytest -q` passes (230 tests).
 - `pytest -q tests/test_pbt.py` passes and keeps the property-based path safety, systemd escaping, scoring, and soak commit-prefix invariants visible in the release matrix.
-- Coverage gate passes with `--cov-fail-under=80` (current local total: 84.32%).
+- Coverage gate passes with `--cov-fail-under=80` (current local total: 84.37%).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `git diff --check` clean.

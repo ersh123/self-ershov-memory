@@ -283,6 +283,52 @@ def test_status_cli_state_root_drives_default_artifact_root_and_ledger(
     assert "Stable release gate:" in output
 
 
+def test_status_surfaces_last_nightly_even_when_update_is_latest_run(tmp_path: Path) -> None:
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    state_root = tmp_path / "state"
+    _write_ledger(
+        state_root,
+        [
+            {
+                "command": "nightly",
+                "success": False,
+                "timestamp": "2026-06-19T09:00:00Z",
+                "summary": "nightly failed",
+            },
+            {
+                "command": "nightly",
+                "success": True,
+                "timestamp": "2026-06-19T10:00:00Z",
+                "artifact_status": "no-op",
+                "run_source": "systemd",
+                "git_commit": "abc1234",
+                "git_dirty": False,
+                "summary": "nightly no-op",
+            },
+            {
+                "command": "update",
+                "success": True,
+                "timestamp": "2026-06-19T11:00:00Z",
+                "summary": "Already up to date.",
+            },
+        ],
+    )
+
+    snapshot = build_status_snapshot(
+        artifact_root=artifact_root,
+        state_path=state_root / "state.json",
+        ledger_path=state_root / "runs.jsonl",
+        diary_path=state_root / "ERSHOV.md",
+    )
+    output = render_status(snapshot)
+
+    assert "Last run: 2026-06-19T11:00:00Z — update (success)" in output
+    assert "Last nightly run: 2026-06-19T10:00:00Z — nightly (success)" in output
+    assert "Last successful nightly: 2026-06-19T10:00:00Z — nightly (success)" in output
+    assert "Last failed nightly: 2026-06-19T09:00:00Z — nightly (failure)" in output
+
+
 def test_status_cli_release_gate_forwards_required_provider_and_env_file(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:

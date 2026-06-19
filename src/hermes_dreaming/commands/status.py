@@ -18,6 +18,9 @@ class StatusSnapshot:
     artifact_state_counts: dict[str, int]
     last_run: dict[str, Any] | None
     last_successful_run: dict[str, Any] | None
+    last_nightly_run: dict[str, Any] | None
+    last_successful_nightly_run: dict[str, Any] | None
+    last_failed_nightly_run: dict[str, Any] | None
     run_count: int
     successful_run_count: int
     memory_usage: dict[str, int]
@@ -61,6 +64,10 @@ def _artifact_state_counts(artifacts: list) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def _is_nightly_run(record: dict[str, Any]) -> bool:
+    return str(record.get("command", "")).lower() == "nightly"
+
+
 def _coerce_int(value: Any, default: int) -> int:
     return value if isinstance(value, int) else default
 
@@ -91,6 +98,17 @@ def build_status_snapshot(
             if record.get("success"):
                 last_successful_run = record
                 break
+    nightly_runs = [record for record in runs if _is_nightly_run(record)]
+    last_nightly_run = nightly_runs[-1] if nightly_runs else None
+    last_successful_nightly_run = None
+    last_failed_nightly_run = None
+    for record in reversed(nightly_runs):
+        if last_successful_nightly_run is None and record.get("success"):
+            last_successful_nightly_run = record
+        if last_failed_nightly_run is None and not record.get("success"):
+            last_failed_nightly_run = record
+        if last_successful_nightly_run is not None and last_failed_nightly_run is not None:
+            break
 
     run_count = _coerce_int(state.get("run_count"), len(runs))
     successful_run_count = _coerce_int(state.get("successful_run_count"), sum(1 for record in runs if record.get("success")))
@@ -101,6 +119,9 @@ def build_status_snapshot(
         artifact_state_counts=_artifact_state_counts(artifacts),
         last_run=last_run,
         last_successful_run=last_successful_run,
+        last_nightly_run=last_nightly_run,
+        last_successful_nightly_run=last_successful_nightly_run,
+        last_failed_nightly_run=last_failed_nightly_run,
         run_count=run_count,
         successful_run_count=successful_run_count,
         memory_usage={
@@ -202,6 +223,9 @@ def render_status(
             f"Run ledger: {snapshot.run_count} run(s), {snapshot.successful_run_count} successful",
             f"Last run: {_format_run(snapshot.last_run)}",
             f"Last successful run: {_format_run(snapshot.last_successful_run)}",
+            f"Last nightly run: {_format_run(snapshot.last_nightly_run)}",
+            f"Last successful nightly: {_format_run(snapshot.last_successful_nightly_run)}",
+            f"Last failed nightly: {_format_run(snapshot.last_failed_nightly_run)}",
             "",
             "Memory usage:",
             f"- state.json: {snapshot.memory_usage['state']} B",

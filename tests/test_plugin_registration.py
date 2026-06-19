@@ -46,6 +46,7 @@ def test_register_exposes_cli_slash_and_skill() -> None:
     assert "update" in ctx.commands["ershov"]["args_hint"]
     assert "nightly" in ctx.commands["ershov"]["args_hint"]
     assert "install-systemd" in ctx.commands["ershov"]["args_hint"]
+    assert "soak" in ctx.commands["ershov"]["args_hint"]
 
     assert ctx.skills
     skill_name, skill_path = ctx.skills[0]

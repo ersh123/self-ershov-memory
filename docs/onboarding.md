@@ -71,6 +71,14 @@ touch that file.
 
 For deterministic smoke tests, set `HERMES_ERSHOV_SESSION_DB=/path/to/state.db` to force harvest/nightly to read a specific SessionDB-compatible SQLite file before the live Hermes SessionDB.
 
+After a scheduled run has had time to fire, use `soak` as the release gate:
+
+```bash
+ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer
+```
+
+It is read-only. It checks `runs.jsonl` for recent successful `nightly` runs, fails on recent nightly failures, and verifies the user systemd timer when `--require-timer` is set.
+
 ## What to expect
 
 - The offline demo works without API keys or external model access.

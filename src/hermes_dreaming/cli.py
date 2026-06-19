@@ -34,6 +34,7 @@ from .commands.review import (
     reject_artifact,
 )
 from .commands.status import build_status_snapshot, render_status
+from .commands.soak import build_soak_report, render_soak_report, render_soak_report_json
 from .commands.update import handle as update_command, render_update_result
 from .diffing import render_artifact_diff
 from .providers import list_providers, render_providers_table
@@ -271,6 +272,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     status = sub.add_parser("status", help="List known artifacts")
     status.add_argument("--artifact-root", type=Path, default=Path.cwd() / ".ershov" / "artifacts", help="Where artifacts are stored")
+
+    soak = sub.add_parser("soak", help="Verify nightly-memory soak evidence from the run ledger")
+    soak.add_argument("--state-root", type=Path, default=None, help="State root containing runs.jsonl")
+    soak.add_argument("--since-hours", type=int, default=30, help="Lookback window for nightly soak evidence")
+    soak.add_argument("--min-successful", type=int, default=1, help="Required successful nightly runs inside the window")
+    soak.add_argument("--require-timer", action="store_true", help="Require the user systemd timer to be enabled and active")
+    soak.add_argument("--timer-name", default="hermes-ershov-nightly.timer", help="systemd user timer name to inspect")
+    soak.add_argument("--allow-failures", action="store_true", help="Do not fail when failed nightly runs exist inside the window")
+    soak.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
 
     report_card = sub.add_parser("report-card", help="Render a redacted shareable artifact summary")
     report_card.add_argument("artifact", type=Path, help="Artifact directory")
@@ -924,6 +934,21 @@ def main(argv: list[str] | None = None) -> int:
         snapshot = build_status_snapshot(artifact_root=args.artifact_root)
         print(render_status(snapshot).rstrip())
         return 0
+
+    if args.command == "soak":
+        try:
+            report = build_soak_report(
+                state_root=args.state_root,
+                since_hours=args.since_hours,
+                min_successful=args.min_successful,
+                require_timer=args.require_timer,
+                timer_name=args.timer_name,
+                allow_failures=args.allow_failures,
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        print((render_soak_report_json(report) if args.json else render_soak_report(report)).rstrip())
+        return 0 if report.passed else 1
 
     if args.command == "report-card":
         report_card = report_card_command(args.artifact)

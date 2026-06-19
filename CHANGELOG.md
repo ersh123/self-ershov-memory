@@ -7,6 +7,9 @@
 - Added `ershov apply --dry-run`, `--priority {low,normal,high}`, and `--target-kind {memory,user,skill,fact}` for preview-only and selective applies. Filters compose; filtered-out proposals stay approved so a later apply with a different filter can still land them.
 - Added `ershov inbox --apply-ready` to surface artifacts where every proposal is approved (or already applied). The inbox digest also renders a "Ready to apply" section.
 - Added `ershov providers list` to introspect the three built-in providers without pinging external services. `--no-llm` is a shorthand for `--provider offline-marker` on `create` and `review`.
+- Added `ershov soak` as a read-only release gate for scheduled nightly memory: it checks recent successful `nightly` runs, recent failures, and optionally the user systemd timer.
+- Hardened `nightly --no-llm` so harvests without eligible `MEMORY:` / `DREAM:` markers exit as clean `no-op` runs instead of invalid empty artifacts.
+- Added `HERMES_ERSHOV_SESSION_DB` for deterministic harvest/nightly smoke tests against a specific SessionDB-compatible SQLite file.
 - Tightened the `reject` reason enforcement: the non-empty reason check is now in `commands/review.py:reject_artifact()`, so any caller (CLI, library, plugin) is constrained by the same rule.
 - Bumped the `DreamArtifact` model with `reverted_at` and `revert_audit_events`. The `dry_run_report` is attached in-memory only and excluded from `manifest.json` so the on-disk contract stays stable.
 

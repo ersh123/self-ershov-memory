@@ -113,7 +113,7 @@ def _register_slash_alias(ctx, *, name: str, legacy: bool = False) -> None:
             if not legacy
             else f"Legacy alias for {PRODUCT_NAME} commands."
         ),
-        args_hint="create|review|nightly|summarize|approve|reject|diff|validate|apply|revert|discard|compact|digest|inbox|report-card|install-cron|install-systemd|providers|status|update",
+        args_hint="create|review|nightly|summarize|approve|reject|diff|validate|apply|revert|discard|compact|digest|inbox|report-card|install-cron|install-systemd|providers|status|soak|update",
     )
 
 

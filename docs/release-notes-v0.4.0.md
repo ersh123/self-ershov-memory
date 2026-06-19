@@ -21,7 +21,7 @@ v0.4.0 makes Ershov safe to use in anger (revert, dry-run, selective apply) and 
 - **`ershov create --from-sessions N`** auto-harvests N recent local Hermes sessions from the SessionDB, feeds the resulting redacted bundle as a source, and stages the artifact in one step. Always prints `harvest:`, `sessions:`, and `redactions:` to stdout before staging.
 - **`ershov create --from-since 7d`** (also `12h`, `2w`) is a time-window alternative. The count is derived from the window and capped at 50 sessions.
 - **`--recent N`** is preserved as a back-compat alias for `--from-sessions N`.
-- **`--no-llm`** is a shorthand for `--provider offline-marker` on `create` and `review`. Useful for cron jobs that should never reach an external LLM by accident.
+- **`--no-llm`** is a shorthand for `--provider offline-marker` on `create`, `review`, and `nightly`. Useful for cron jobs that should never reach an external LLM by accident.
 
 ### Discovery and inbox
 
@@ -32,6 +32,9 @@ v0.4.0 makes Ershov safe to use in anger (revert, dry-run, selective apply) and 
 ### Hardening
 
 - **`reject --reason`** is enforced at the command layer (`commands/review.py:reject_artifact()`), not just the CLI parser. Any caller (CLI, library, plugin) is constrained by the same rule. `ReviewError` is raised on missing, empty, or whitespace-only reasons.
+- **`ershov nightly --no-llm`** now exits as a clean `no-op` when the recent harvest has no eligible `MEMORY:` / `DREAM:` markers. It records the run and writes digests, but does not create an invalid empty artifact.
+- **`HERMES_ERSHOV_SESSION_DB=/path/to/state.db`** forces harvest/nightly to use a specific SessionDB-compatible SQLite file before the live Hermes SessionDB. This makes installed-CLI smoke tests deterministic.
+- **`ershov soak`** is the read-only scheduled-run gate. It checks recent successful `nightly` runs in `runs.jsonl`, fails on recent nightly failures by default, and can require the user systemd timer to be enabled and active.
 
 ## Data model
 
@@ -50,16 +53,17 @@ A third field, `dry_run_report`, is attached in-memory only during a single appl
 
 ## Verification
 
-- `pytest -q` passes (112 tests across 25 files, +31 from v0.3.0).
+- `pytest -q` passes (139 tests).
 - `python -m build --wheel` succeeds.
 - `git diff --check` clean.
-- Smoke-tested on temp fixtures for: `revert` (roundtrip, drift, missing backup, partial failure), `apply --dry-run` (preview without writes), `apply --priority` and `--target-kind` (filters), `inbox --apply-ready`, `providers list`, `--from-sessions` with redaction stats, and `--no-llm` translation.
+- Smoke-tested on temp fixtures for: `revert` (roundtrip, drift, missing backup, partial failure), `apply --dry-run` (preview without writes), `apply --priority` and `--target-kind` (filters), `inbox --apply-ready`, `providers list`, `--from-sessions` with redaction stats, `nightly --no-llm` no-op/staged paths, deterministic SessionDB override, and `soak` pass/fail gates.
 
 ## Known limitations
 
 - Revert does not re-run validation. It is a restore from backup, not a re-apply. If a reverted proposal is reapplied, validation runs normally as part of the apply path.
 - Drift detection compares the live file's pre-restore content to the recorded backup snapshot, but does not currently track per-write post-apply shas. Adding a per-write post-apply sha is a v0.5.0 candidate.
 - The `--from-since` window-to-count heuristic is conservative (4 sessions per day, capped at 50). If you want a more aggressive count, use `--from-sessions N` directly.
+- `soak` proves scheduled-run evidence only after a real timer/cron run has occurred; it does not itself wait overnight or run providers.
 
 ## Bottom line
 

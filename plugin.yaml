@@ -3,6 +3,6 @@ version: 0.4.0
 description: >-
   Personal staged nightly memory engine for Hermes operator memory. Commands:
   create, review, nightly, diff, validate, apply, discard, compact,
-  install-cron, install-systemd, status, update.
+  install-cron, install-systemd, status, soak, update.
 author: Niko
 kind: standalone

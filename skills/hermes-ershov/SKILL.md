@@ -36,6 +36,7 @@ ershov nightly --live-root ./live --artifact-root ./artifacts --no-llm
 ershov install-cron --mode nightly-memory --schedule "0 3 * * *"
 ershov install-systemd --on-calendar "*-*-* 03:00:00"
 ershov status --artifact-root ./artifacts
+ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer
 ershov update
 ```
 
@@ -55,6 +56,7 @@ If you want the safest short workflow, use `review` first, then `diff`, `validat
 For unattended nightly runs, use `nightly`: it harvests recent dialogue, stages an artifact, writes digests, compacts terminal artifacts, and records the run ledger. It never applies live memory automatically.
 On VPS/systemd stacks, prefer `install-systemd` so the nightly memory loop runs outside the Hermes gateway process.
 For systemd model keys, use `~/.config/hermes-ershov/nightly.secrets.env`; the installer does not write secrets.
+After a scheduled run has had time to fire, use `soak` as the read-only gate: it checks recent successful `nightly` runs, recent failures, and the systemd timer when requested.
 
 ## Memory marker format
 

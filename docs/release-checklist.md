@@ -39,6 +39,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] Smoke `HERMES_ERSHOV_SESSION_DB=/tmp/state.db ershov nightly --no-llm` with controlled marker input through the installed CLI
 - [ ] Smoke `ershov install-cron`
 - [ ] Smoke `ershov install-systemd --dry-run`
+- [ ] After a real scheduled run, smoke `ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer`
 - [ ] Smoke `ershov update --check` and the real `ershov update --no-verify` path on a disposable repo
 
 ## 5. Release gate

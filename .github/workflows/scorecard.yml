@@ -8,10 +8,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scorecard:
     name: run scorecard
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       id-token: write
@@ -39,6 +44,7 @@ jobs:
   upload-sarif:
     name: upload scorecard sarif
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: scorecard
     permissions:
       contents: read

@@ -9,6 +9,7 @@ The matrix follows the current public docs for:
 - pytest good integration practices: https://docs.pytest.org/en/stable/explanation/goodpractices.html
 - Hypothesis property-based and stateful testing: https://hypothesis.readthedocs.io/en/latest/stateful.html
 - GitHub Actions Python build/test workflows: https://docs.github.com/actions/guides/building-and-testing-python
+- GitHub Actions workflow syntax, timeouts, and concurrency: https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions
 - GitHub CodeQL workflow configuration: https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options
 - GitHub Dependabot configuration: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
 - OpenSSF Scorecard GitHub Action: https://github.com/ossf/scorecard-action
@@ -68,6 +69,7 @@ GitHub Actions runs the same release-shaped matrix:
 - OpenSSF Scorecard on weekly schedule and manual dispatch, with SARIF uploaded to code scanning
 - checkout-token hardening through `persist-credentials: false` on repository checkout steps
 - workflow action pinning to full commit SHAs with adjacent version comments
+- workflow-level concurrency for repeatable analysis jobs and job-level `timeout-minutes` on every GitHub Actions job
 - release asset workflow build runs under read-only repository permissions; asset upload is isolated to a separate `release`-event-only job with `contents: write`
 
 ## Coverage shape
@@ -81,7 +83,7 @@ The suite is intentionally mixed:
 - docs guards that fail when release-facing text drifts from shipped behavior
 - local markdown link/image guards for release-facing docs
 - release workflow guards that prevent accidental PyPI publishing or release creation
-- supply-chain workflow guards for Scorecard permissions, SARIF output, checkout token persistence, and full-SHA action pinning
+- supply-chain workflow guards for Scorecard permissions, SARIF output, checkout token persistence, full-SHA action pinning, and workflow timeout/concurrency controls
 - negative tests for malformed provider output, fabricated provenance, fabricated quotes/snippets, unsafe paths, missing backups, and no-op nightlies
 
 ## Stable-release evidence

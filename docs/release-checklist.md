@@ -56,6 +56,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] Confirm OpenSSF Scorecard is enabled and uploads SARIF to GitHub code scanning
 - [ ] Confirm checkout steps use `persist-credentials: false` unless a job explicitly needs a persisted token
 - [ ] Confirm workflow `uses:` actions are pinned to full commit SHAs with version comments
+- [ ] Confirm every GitHub Actions job has `timeout-minutes` and repeatable analysis workflows use concurrency cancellation
 
 ## 5. Release gate
 

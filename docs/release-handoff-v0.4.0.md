@@ -36,7 +36,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 ## Verification gates
 
-- `python -m pytest -q` (252 tests pass)
+- `python -m pytest -q` (254 tests pass)
 - `python -m pytest -q tests/test_pbt.py` (property-based safety invariants pass)
 - coverage gate `--cov-fail-under=80` (current local total: 84.47%)
 - `git diff --check` (clean)
@@ -65,7 +65,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - [x] `git status -sb` clean (except intentional v0.4.0 changes)
 - [x] `git diff --check` clean
-- [x] `pytest -q` passes (252 tests)
+- [x] `pytest -q` passes (254 tests)
 - [x] `pytest -q tests/test_pbt.py` passes
 - [x] `python -m build` succeeds
 - [x] Each new + modified command smoke-tested on temp fixtures

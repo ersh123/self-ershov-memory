@@ -58,6 +58,31 @@ def test_checkouts_do_not_persist_github_tokens() -> None:
             assert "persist-credentials: false" in text, path
 
 
+def test_repeatable_analysis_workflows_cancel_stale_runs() -> None:
+    for workflow_name in ("ci.yml", "codeql.yml", "scorecard.yml"):
+        text = (REPO_ROOT / ".github" / "workflows" / workflow_name).read_text(encoding="utf-8")
+        assert "concurrency:" in text, workflow_name
+        assert "group: ${{ github.workflow }}-${{ github.ref }}" in text, workflow_name
+        assert "cancel-in-progress: true" in text, workflow_name
+
+
+def test_every_github_actions_job_has_a_timeout() -> None:
+    workflow_paths = sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml"))
+
+    for path in workflow_paths:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        job_lines = [
+            index
+            for index, line in enumerate(lines)
+            if line.startswith("  ") and not line.startswith("    ") and line.rstrip().endswith(":")
+        ]
+        for index, start in enumerate(job_lines):
+            end = job_lines[index + 1] if index + 1 < len(job_lines) else len(lines)
+            chunk = "\n".join(lines[start:end])
+            if "runs-on:" in chunk:
+                assert "timeout-minutes:" in chunk, (path, lines[start].strip())
+
+
 def test_github_actions_are_pinned_to_full_commit_shas() -> None:
     workflow_paths = sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml"))
     action_line = re.compile(r"uses:\s+[-\w./]+@[0-9a-f]{40}\s+#\s+v?[0-9][-\w.]*$")

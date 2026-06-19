@@ -44,8 +44,11 @@ jobs:
       - name: Compile package
         run: python -m compileall -q __init__.py src scripts
 
-      - name: Run tests
-        run: pytest -q
+      - name: Run tests with coverage
+        run: pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80
+
+      - name: Run property-based tests directly
+        run: pytest -q tests/test_pbt.py
 
       - name: Smoke Hermes plugin wrapper
         run: python scripts/hermes_plugin_smoke.py
@@ -59,6 +62,10 @@ jobs:
           /tmp/ershov-wheel-smoke/bin/python -m pip install --upgrade pip
           /tmp/ershov-wheel-smoke/bin/python -m pip install dist/*.whl
           /tmp/ershov-wheel-smoke/bin/ershov --help
+          /tmp/ershov-wheel-smoke/bin/ershov providers list
+          /tmp/ershov-wheel-smoke/bin/ershov providers doctor --provider offline-marker --strict
+          /tmp/ershov-wheel-smoke/bin/ershov status --release-gate --state-root /tmp/ershov-wheel-smoke-state
+          /tmp/ershov-wheel-smoke/bin/ershov revert --help
           /tmp/ershov-wheel-smoke/bin/mnemos --help
           /tmp/ershov-wheel-smoke/bin/nightmem --help
           /tmp/ershov-wheel-smoke/bin/dreaming --help

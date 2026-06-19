@@ -561,6 +561,12 @@ def revert_artifact(
                         detail="live file was missing at revert time",
                         command="revert",
                         expected_sha256=expected_sha or None,
+                        evidence_strength="legacy-degraded" if not expected_sha else None,
+                        evidence_reason=(
+                            "post_apply_sha256 missing; drift was inferred from a legacy backup record"
+                            if not expected_sha
+                            else None
+                        ),
                     )
                 )
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -588,6 +594,12 @@ def revert_artifact(
                             command="revert",
                             expected_sha256=expected_sha,
                             live_sha256=live_sha,
+                            evidence_strength="legacy-degraded" if not record.get("post_apply_sha256") else None,
+                            evidence_reason=(
+                                "post_apply_sha256 missing; compared live content to the pre-apply backup snapshot"
+                                if not record.get("post_apply_sha256")
+                                else None
+                            ),
                         )
                     )
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -712,6 +724,8 @@ def _make_revert_event(
     failures: list[str] | None = None,
     expected_sha256: str | None = None,
     live_sha256: str | None = None,
+    evidence_strength: str | None = None,
+    evidence_reason: str | None = None,
 ) -> dict[str, Any]:
     event: dict[str, Any] = {
         "timestamp": _now_iso(),
@@ -738,6 +752,10 @@ def _make_revert_event(
         event["expected_sha256"] = expected_sha256
     if live_sha256 is not None:
         event["live_sha256"] = live_sha256
+    if evidence_strength is not None:
+        event["evidence_strength"] = evidence_strength
+    if evidence_reason is not None:
+        event["evidence_reason"] = evidence_reason
     return event
 
 
@@ -839,8 +857,14 @@ def _render_revert_markdown(
     lines.extend(["", "## Drift events", ""])
     if drift_events:
         for event in drift_events:
+            suffix = ""
+            if event.get("evidence_strength"):
+                suffix = f" (evidence: {event['evidence_strength']}"
+                if event.get("evidence_reason"):
+                    suffix += f"; {event['evidence_reason']}"
+                suffix += ")"
             lines.append(
-                f"- `{event.get('timestamp', '?')}` `{event.get('target', '?')}` — {event.get('detail', 'unspecified drift')}"
+                f"- `{event.get('timestamp', '?')}` `{event.get('target', '?')}` — {event.get('detail', 'unspecified drift')}{suffix}"
             )
     else:
         lines.append("- none")

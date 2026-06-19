@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import importlib.util
 from pathlib import Path
 
@@ -115,3 +116,14 @@ def test_root_plugin_cli_handler_propagates_nonzero_exit(monkeypatch) -> None:
         ctx.cli_commands["ershov"]["handler_fn"](argparse.Namespace(dreaming_args=["soak"]))
 
     assert exc.value.code == 7
+
+
+def test_public_alias_packages_import_under_coverage() -> None:
+    for module_name in (
+        "hermes_ershov",
+        "hermes_ershov.__main__",
+        "hermes_mnemos",
+        "hermes_mnemos.__main__",
+    ):
+        module = importlib.import_module(module_name)
+        assert module is not None

@@ -133,7 +133,10 @@ def test_release_docs_use_current_test_count() -> None:
         assert "198 tests" not in text, path
         assert "201 tests" not in text, path
         assert "208 tests" not in text, path
-        assert "209 tests" in text, path
+        assert "209 tests" not in text, path
+        assert "214 tests" not in text, path
+        assert "215 tests" not in text, path
+        assert "216 tests" in text, path
 
 
 def test_release_docs_document_stronger_public_stable_promotion_gate() -> None:
@@ -179,4 +182,40 @@ def test_release_docs_document_provider_doctor_safety() -> None:
         text = path.read_text(encoding="utf-8")
         assert "providers doctor" in text, path
         assert "without" in text.lower(), path
+        assert "configuration" in text.lower(), path
+        assert "not an end-to-end generation test" in text, path
     assert "never prints secret values" in (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+
+def test_release_docs_label_legacy_revert_evidence_as_degraded() -> None:
+    docs = [
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "CHANGELOG.md",
+        REPO_ROOT / "docs" / "safety.md",
+        REPO_ROOT / "docs" / "release-notes-v0.4.0.md",
+        REPO_ROOT / "docs" / "release-handoff-v0.4.0.md",
+    ]
+    for path in docs:
+        text = path.read_text(encoding="utf-8")
+        assert "legacy-degraded" in text, path
+        assert "post-apply sha" in text or "post-apply shas" in text, path
+
+
+def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    testing = (REPO_ROOT / "docs" / "testing.md").read_text(encoding="utf-8")
+    checklist = (REPO_ROOT / "docs" / "release-checklist.md").read_text(encoding="utf-8")
+
+    assert "docs/testing.md" in readme
+    for phrase in (
+        "property-based tests",
+        "coverage report",
+        "80% minimum gate",
+        "plugin wrapper smoke",
+        "wheel and source distribution",
+        "docs guards",
+        "CodeQL",
+        "--min-successful 3 --strict-systemd",
+    ):
+        assert phrase in testing
+    assert "docs/testing.md" in checklist

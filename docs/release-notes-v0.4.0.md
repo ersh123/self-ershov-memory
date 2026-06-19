@@ -27,7 +27,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 ### Discovery and inbox
 
 - **`ershov providers list`** prints a table with `NAME`, `KIND`, `STATUS` (always | optional | missing), and `NOTES` for the built-in providers (`offline-marker`, `openai-compatible`, `deepseek`, `openrouter`, `ollama`). No external services are pinged.
-- **`ershov providers doctor`** checks local provider readiness without sending prompts or pinging model APIs. It reports dependency presence, API-key env-var presence, base URL shape, and local-only notes without printing secret values. `--strict` turns it into a shell gate.
+- **`ershov providers doctor`** checks local provider configuration readiness without sending prompts or pinging model APIs. It reports dependency presence, API-key env-var presence, base URL shape, and local-only notes without printing secret values. It is not an end-to-end generation test; use an explicit review/create run when you want to exercise a model call. `--strict` turns the local readiness check into a shell gate.
 - **`ershov inbox --apply-ready`** filters to artifacts where every non-rejected proposal is approved (or already applied) and the artifact is in `staged`, `approved`, or `applied` status. Composes with `--state` and `--priority`.
 - The **inbox digest** (`ershov digest --inbox`) now surfaces a "Ready to apply" section and an `Apply-ready count` field at the top.
 
@@ -42,6 +42,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 - **`report-card` and `digest` backup details** now separate real backup file copies from rollback evidence records and created-file tombstones, so apply-created files do not look like missing backup coverage.
 - **`ershov revert --validate`** adds a post-restore validation gate for rollback drills and release smokes without changing the default restore semantics.
 - **Per-write post-apply shas** are now stored in `backup_records` on successful apply and used by revert drift detection, so a normal apply→revert is not mislabeled as drift while operator edits after apply still are.
+- **Legacy revert evidence** is now labeled as `legacy-degraded` when an old artifact lacks post-apply shas and revert has to infer drift from backup-vs-live comparison.
 - **Provider quote grounding** now rejects schema-valid model proposals whose `source_quote` or `snippet` does not match a cited source line, closing the easy "valid JSON, invented evidence" path.
 - **`ershov status --release-gate`** now renders the strict systemd stable gate inline: current commit, dirty state, timer next elapse, matching scheduled runs, recent failures, and exact blockers.
 - The root Hermes plugin wrapper now propagates non-zero CLI failures, so `hermes ershov ...` can be used as a real shell gate instead of only a human-readable wrapper.
@@ -64,17 +65,19 @@ Three additive fields on `DreamArtifact`:
 
 ## Verification
 
-- `pytest -q` passes (209 tests).
+- `pytest -q` passes (216 tests).
+- `pytest -q tests/test_pbt.py` passes and keeps the property-based path safety, systemd escaping, scoring, and soak commit-prefix invariants visible in the release matrix.
+- Coverage gate passes with `--cov-fail-under=80` (current local total: 83.96%).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `git diff --check` clean.
-- Smoke-tested on temp fixtures for: `revert` (roundtrip, `--validate`, validation failure after restore, post-apply sha no-drift path, post-apply sha drift path, legacy drift fallback, missing backup, partial failure), `apply --dry-run` (preview without writes), `apply --priority` and `--target-kind` (filters), `inbox --apply-ready`, `providers list`, `providers doctor`, `--from-sessions` with redaction stats, `nightly --no-llm` no-op/staged paths, nightly lock rejection, nightly crash ledger recording, deterministic SessionDB override, plugin wrapper failure propagation, and source/commit/clean-checkout-aware `soak` pass/fail gates.
+- Smoke-tested on temp fixtures for: `revert` (roundtrip, `--validate`, validation failure after restore, post-apply sha no-drift path, post-apply sha drift path, `legacy-degraded` drift fallback, missing backup, partial failure), `apply --dry-run` (preview without writes), `apply --priority` and `--target-kind` (filters), `inbox --apply-ready`, `providers list`, `providers doctor` configuration readiness, `--from-sessions` with redaction stats, `nightly --no-llm` no-op/staged paths, nightly lock rejection, nightly crash ledger recording, deterministic SessionDB override, plugin wrapper failure propagation, and source/commit/clean-checkout-aware `soak` pass/fail gates.
 
 ## Known limitations
 
 - Stable release wording waits for at least one real scheduled systemd run followed by a passing `hermes ershov soak --strict-systemd`. Public stable promotion should wait for the stronger `hermes ershov soak --since-hours 96 --min-successful 3 --strict-systemd` gate. Manual service starts and transient timer smokes are useful evidence, but they are not the same as overnight scheduled runs.
 - Revert does not re-run validation by default. Use `ershov revert --validate` for a post-restore validation gate. Without it, the CLI and `REVERT.md` say `post_revert_validation: not-run`. If a reverted proposal is reapplied, validation runs normally as part of the apply path.
-- Legacy artifacts created before post-apply shas still use backup-vs-live drift comparison. New successful applies use recorded post-apply shas.
+- Legacy artifacts created before post-apply shas still use backup-vs-live drift comparison. Those events are labeled `legacy-degraded`; new successful applies use recorded post-apply shas.
 - The `--from-since` window-to-count heuristic is conservative (4 sessions per day, capped at 50). If you want a more aggressive count, use `--from-sessions N` directly.
 - `soak` proves scheduled-run evidence only after a real timer/cron run has occurred; it does not itself wait overnight or run providers.
 

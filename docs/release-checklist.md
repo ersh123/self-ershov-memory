@@ -28,10 +28,14 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 
 ## 4. Verification
 
-- [ ] `pytest -q`
+- [ ] `pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80`
+- [ ] `pytest -q tests/test_pbt.py`
+- [ ] `python -m compileall -q __init__.py src scripts`
+- [ ] `git diff --check`
 - [ ] `python -m pip install build` if needed
 - [ ] `python -m build`
 - [ ] Smoke wheel and source distribution installs against all public CLI aliases
+- [ ] Smoke `ershov providers doctor --provider offline-marker --strict` and confirm it is described as configuration readiness, not end-to-end generation
 - [ ] Smoke the CLI with `ershov status`
 - [ ] Smoke `ershov create`, `review`, `diff`, `validate`, `apply`, and `discard` on temp fixtures
 - [ ] Smoke `ershov compact` on terminal artifacts
@@ -44,6 +48,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] After a real scheduled run, smoke `hermes ershov soak --state-root ~/.hermes/ershov --since-hours 30 --strict-systemd`
 - [ ] Before public stable promotion, smoke `hermes ershov soak --state-root ~/.hermes/ershov --since-hours 96 --min-successful 3 --strict-systemd`
 - [ ] Smoke `ershov update --check` and the real `ershov update --no-verify` path on a disposable repo
+- [ ] Confirm `docs/testing.md` still matches the GitHub Actions matrix
 
 ## 5. Release gate
 

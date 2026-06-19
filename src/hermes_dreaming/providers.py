@@ -731,7 +731,7 @@ def doctor_providers(
     env: Mapping[str, str] | None = None,
     openai_available: bool | None = None,
 ) -> list[ProviderDoctorRow]:
-    """Check local provider readiness without network calls or secret output."""
+    """Check local provider configuration readiness without network calls or secret output."""
     selected = _canonical_provider_name(provider) if provider else None
     rows = list_providers()
     if selected is not None:
@@ -742,7 +742,11 @@ def doctor_providers(
 
     for row in rows:
         checks: list[str] = []
-        notes: list[str] = ["network probe skipped"]
+        notes: list[str] = [
+            "configuration readiness only",
+            "network probe skipped",
+            "not an end-to-end generation test",
+        ]
         readiness = "ready"
 
         if row.name == "offline-marker":

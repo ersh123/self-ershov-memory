@@ -283,6 +283,7 @@ def test_revert_records_drift_against_post_apply_sha(tmp_path: Path) -> None:
     assert drift_events[0]["expected_sha256"] == expected_sha
     assert drift_events[0]["live_sha256"] == drift_sha
     assert "recorded post-apply snapshot" in drift_events[0]["detail"]
+    assert drift_events[0].get("evidence_strength") is None
     assert memory.read_text(encoding="utf-8") == "# MEMORY\n\n- Existing note\n"
 
 
@@ -364,6 +365,40 @@ def test_revert_records_drift_event_when_live_drifted_after_apply(tmp_path: Path
     drift_events = [event for event in reverted.revert_audit_events if event["action"] == "drift_detected"]
     assert drift_events
     assert any("memory.md" in event.get("target", "") for event in drift_events)
+    assert drift_events[0]["evidence_strength"] == "legacy-degraded"
+    assert "post_apply_sha256 missing" in drift_events[0]["evidence_reason"]
+    revert_md = (artifact_dir / REVERT_FILE).read_text(encoding="utf-8")
+    assert "evidence: legacy-degraded" in revert_md
+
+
+def test_revert_marks_missing_legacy_live_file_as_degraded_evidence(tmp_path: Path) -> None:
+    live_root = tmp_path / "live"
+    live_root.mkdir()
+    backup_root = tmp_path / "backups"
+    backup_root.mkdir(parents=True, exist_ok=True)
+    backup_path = backup_root / "memory.md"
+    backup_path.write_text("# MEMORY\n\n- Existing note\n", encoding="utf-8")
+
+    proposal = _memory_proposal(tmp_path)
+    proposal.applied = True
+    artifact_dir = _write_artifact(
+        tmp_path,
+        live_root=live_root,
+        proposals=[proposal],
+        applied=True,
+        backup_paths=[str(backup_path)],
+    )
+
+    reverted = revert_artifact(artifact_dir, live_root=live_root, backup_root=backup_root, yes=True)
+
+    memory = live_root / "memory.md"
+    assert memory.read_text(encoding="utf-8") == "# MEMORY\n\n- Existing note\n"
+    drift_events = [event for event in reverted.revert_audit_events if event["action"] == "drift_detected"]
+    assert len(drift_events) == 1
+    assert drift_events[0]["detail"] == "live file was missing at revert time"
+    assert drift_events[0]["evidence_strength"] == "legacy-degraded"
+    assert "legacy backup record" in drift_events[0]["evidence_reason"]
+    assert "evidence: legacy-degraded" in (artifact_dir / REVERT_FILE).read_text(encoding="utf-8")
 
 
 def test_revert_writes_manifest_audit_and_revert_md(tmp_path: Path) -> None:

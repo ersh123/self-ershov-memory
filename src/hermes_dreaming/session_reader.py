@@ -146,6 +146,7 @@ def _configured_session_db_path() -> Path | None:
 # ---------------------------------------------------------------------------
 
 def _read_via_session_db(limit: int, *, include_assistant: bool = False) -> list[SessionDigest] | None:
+    db: Any | None = None
     try:
         from hermes_state import SessionDB  # type: ignore
 
@@ -176,6 +177,13 @@ def _read_via_session_db(limit: int, *, include_assistant: bool = False) -> list
     except Exception as exc:
         logger.debug("ershov: SessionDB read failed: %s", exc)
         return None
+    finally:
+        close = getattr(db, "close", None) if db is not None else None
+        if callable(close):
+            try:
+                close()
+            except Exception as exc:  # pragma: no cover - best-effort cleanup
+                logger.debug("ershov: SessionDB close failed: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -186,50 +194,54 @@ def _read_via_sqlite(limit: int, *, db_path: Path | None = None, include_assista
     db_file = _db_path(db_path)
     if not db_file.exists():
         return None
+    conn: sqlite3.Connection | None = None
     try:
-        with sqlite3.connect(str(db_file)) as conn:
-            conn.row_factory = sqlite3.Row
-            session_rows = conn.execute(
-                """
-                SELECT s.id, s.title, s.started_at, s.message_count, s.source
-                FROM sessions s
-                LEFT JOIN (
-                    SELECT session_id, MAX(timestamp) AS last_active
-                    FROM messages GROUP BY session_id
-                ) m ON m.session_id = s.id
-                WHERE s.parent_session_id IS NULL OR EXISTS (
-                    SELECT 1 FROM sessions p
-                    WHERE p.id = s.parent_session_id AND p.end_reason = 'branched'
-                )
-                ORDER BY COALESCE(m.last_active, s.started_at) DESC, s.id DESC
-                LIMIT ?
-                """,
-                (limit,),
-            ).fetchall()
+        conn = sqlite3.connect(str(db_file))
+        conn.row_factory = sqlite3.Row
+        session_rows = conn.execute(
+            """
+            SELECT s.id, s.title, s.started_at, s.message_count, s.source
+            FROM sessions s
+            LEFT JOIN (
+                SELECT session_id, MAX(timestamp) AS last_active
+                FROM messages GROUP BY session_id
+            ) m ON m.session_id = s.id
+            WHERE s.parent_session_id IS NULL OR EXISTS (
+                SELECT 1 FROM sessions p
+                WHERE p.id = s.parent_session_id AND p.end_reason = 'branched'
+            )
+            ORDER BY COALESCE(m.last_active, s.started_at) DESC, s.id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
 
-            digests: list[SessionDigest] = []
-            for row in session_rows:
-                sid = row["id"]
-                msg_rows = conn.execute(
-                    "SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp, id",
-                    (sid,),
-                ).fetchall()
-                raw_msgs = [{"role": r["role"], "content": r["content"]} for r in msg_rows]
-                digests.append(
-                    SessionDigest(
-                        session_id=sid,
-                        title=row["title"],
-                        started_at=row["started_at"],
-                        message_count=int(row["message_count"] or 0),
-                        source=str(row["source"] or "sqlite"),
-                        user_turns=_extract_user_turns(raw_msgs),
-                        context_lines=_extract_dialogue_lines(raw_msgs) if include_assistant else None,
-                    )
+        digests: list[SessionDigest] = []
+        for row in session_rows:
+            sid = row["id"]
+            msg_rows = conn.execute(
+                "SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp, id",
+                (sid,),
+            ).fetchall()
+            raw_msgs = [{"role": r["role"], "content": r["content"]} for r in msg_rows]
+            digests.append(
+                SessionDigest(
+                    session_id=sid,
+                    title=row["title"],
+                    started_at=row["started_at"],
+                    message_count=int(row["message_count"] or 0),
+                    source=str(row["source"] or "sqlite"),
+                    user_turns=_extract_user_turns(raw_msgs),
+                    context_lines=_extract_dialogue_lines(raw_msgs) if include_assistant else None,
                 )
+            )
         return digests
     except Exception as exc:
         logger.debug("ershov: direct SQLite read failed: %s", exc)
         return None
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 # ---------------------------------------------------------------------------

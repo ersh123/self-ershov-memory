@@ -31,11 +31,14 @@ This is the short follow-up note for the v0.4.0 release lane.
 - `src/hermes_dreaming/commands/digest.py` — `apply_ready_count` / `apply_ready_rows` and the "Ready to apply" section in `render_inbox_digest`
 - `src/hermes_dreaming/commands/review.py` — `reject_artifact` reason enforcement at command layer
 - `src/hermes_dreaming/providers.py` — `list_providers`, `doctor_providers`, and provider table renderers
+- `docs/testing.md` — release test matrix and stable soak evidence boundary
 - `tests/test_revert.py` (NEW), `tests/test_inbox.py` (NEW), extended `test_apply.py`, `test_cli.py`, `test_providers.py`, `test_review_actions.py`
 
 ## Verification gates
 
-- `python -m pytest -q` (209 tests pass)
+- `python -m pytest -q` (216 tests pass)
+- `python -m pytest -q tests/test_pbt.py` (property-based safety invariants pass)
+- coverage gate `--cov-fail-under=80` (current local total: 83.96%)
 - `git diff --check` (clean)
 - `python3 -m build` (succeeds)
 - Temp-only Ershov smoke with `HERMES_ERSHOV_STATE_ROOT`:
@@ -46,12 +49,12 @@ This is the short follow-up note for the v0.4.0 release lane.
   - post-apply sha no-drift and drift audit paths
   - revert on a non-applied artifact raises and leaves live state untouched
   - revert with a missing backup fails loud
-  - revert with live drift still restores from backup and records the event
+  - revert with live drift still restores from backup and records the event; legacy drift fallback is marked `legacy-degraded`
   - `apply --dry-run` writes nothing and produces a structured report
   - `apply --priority high --target-kind memory` filters correctly
   - `inbox --apply-ready` filters correctly
   - `providers list` prints the table without pinging
-  - `providers doctor` checks local readiness without network calls or secret output
+  - `providers doctor` checks local configuration readiness without network calls, model pings, or secret output
   - `create --from-sessions 5` prints redaction stats and feeds the bundle
   - provider output rejects schema-valid invented `source_quote` / `snippet` evidence
   - `--no-llm` overrides `--provider` to `offline-marker`
@@ -61,7 +64,8 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - [x] `git status -sb` clean (except intentional v0.4.0 changes)
 - [x] `git diff --check` clean
-- [x] `pytest -q` passes (209 tests)
+- [x] `pytest -q` passes (216 tests)
+- [x] `pytest -q tests/test_pbt.py` passes
 - [x] `python -m build` succeeds
 - [x] Each new + modified command smoke-tested on temp fixtures
 - [x] CHANGELOG, release notes, handoff all written
@@ -69,7 +73,8 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 ## What needs Niko's eyes
 
-- **Revert command behavior**: new successful applies record per-write post-apply shas in `backup_records`, so drift detection can distinguish a clean applied file from an operator edit after apply. Legacy artifacts still fall back to backup-vs-live drift comparison.
+- **Revert command behavior**: new successful applies record per-write post-apply shas in `backup_records`, so drift detection can distinguish a clean applied file from an operator edit after apply. Legacy artifacts still fall back to backup-vs-live drift comparison, but those events are labeled `legacy-degraded` in audit output and `REVERT.md`.
+- **Provider doctor behavior**: `providers doctor --strict` is a local configuration gate only. It proves dependency/key/base-url readiness without prompt/model calls, not an end-to-end generation test.
 - **Apply filter behavior**: filtered-out proposals stay `approved` so a later apply with a different filter can still land them. This is the right behavior for the use case, but it's a state-machine subtlety. Read `apply_artifact` to confirm.
 - **Re-run of reject without reason**: the CLI now exits 1 instead of erroring in argparse. If you want a different code, it's a one-liner in `cli.py`.
 - **`--from-since` count heuristic**: 4 sessions per day, capped at 50. If you want a different default, change the constant in `_resolve_creation_sources`.

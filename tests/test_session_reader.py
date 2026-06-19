@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
+import types
 from pathlib import Path
 
 from hermes_dreaming import session_reader as reader
@@ -87,6 +89,37 @@ def test_list_recent_stops_at_session_db(monkeypatch) -> None:
 
     assert [session.session_id for session in sessions] == ["sdb-1"]
     assert calls == ["sessiondb"]
+
+
+def test_read_via_session_db_closes_primary_database(monkeypatch) -> None:
+    closed = False
+
+    class FakeSessionDB:
+        def list_sessions_rich(self, *, limit: int, order_by_last_active: bool):  # noqa: ARG002
+            return [
+                {
+                    "id": "session-1",
+                    "title": "One",
+                    "started_at": 1000.0,
+                    "message_count": 1,
+                    "source": "sessiondb",
+                }
+            ]
+
+        def get_messages(self, _sid: str):
+            return [{"role": "user", "content": "User turn long enough to keep"}]
+
+        def close(self) -> None:
+            nonlocal closed
+            closed = True
+
+    monkeypatch.setitem(sys.modules, "hermes_state", types.SimpleNamespace(SessionDB=FakeSessionDB))
+
+    sessions = reader._read_via_session_db(limit=1)
+
+    assert sessions is not None
+    assert [session.session_id for session in sessions] == ["session-1"]
+    assert closed is True
 
 
 def test_list_recent_falls_back_to_sqlite_then_pointer_log(monkeypatch) -> None:

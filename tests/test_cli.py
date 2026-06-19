@@ -218,7 +218,9 @@ def test_providers_doctor_prints_safe_readiness_table(capsys) -> None:
     assert "READINESS" in output
     assert "offline-marker" in output
     assert "api key: not required" in output
+    assert "configuration readiness only" in output
     assert "network probe skipped" in output
+    assert "not an end-to-end generation test" in output
 
 
 def test_providers_doctor_json_output(capsys) -> None:

@@ -465,9 +465,12 @@ def test_provider_doctor_checks_env_without_printing_secret_values() -> None:
     rendered = render_provider_doctor_table(rows)
 
     assert rows[0].readiness == "ready"
+    assert "configuration readiness only" in rows[0].notes
+    assert "not an end-to-end generation test" in rows[0].notes
     assert "DEEPSEEK_API_KEY: present" in rendered
     assert "sk-do-not-print" not in rendered
     assert "network probe skipped" in rendered
+    assert "not an end-to-end generation test" in rendered
 
 
 def test_provider_doctor_blocks_missing_openai_dependency_or_key() -> None:
@@ -492,6 +495,7 @@ def test_provider_doctor_never_pings_ollama(monkeypatch) -> None:
 
     assert rows[0].readiness == "unknown"
     assert "base_url: valid" in rows[0].checks
+    assert "configuration readiness only" in rows[0].notes
     assert "local Ollama server/model not pinged" in rows[0].notes
 
 

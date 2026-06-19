@@ -35,12 +35,13 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 ## Verification gates
 
-- `python -m pytest -q` (192 tests pass)
+- `python -m pytest -q` (194 tests pass)
 - `git diff --check` (clean)
 - `python3 -m build` (succeeds)
 - Temp-only Ershov smoke with `HERMES_ERSHOV_STATE_ROOT`:
   - apply→revert roundtrip on a real fixture
   - `revert --validate` pass/fail audit paths
+  - post-apply sha no-drift and drift audit paths
   - revert on a non-applied artifact raises and leaves live state untouched
   - revert with a missing backup fails loud
   - revert with live drift still restores from backup and records the event
@@ -56,7 +57,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - [x] `git status -sb` clean (except intentional v0.4.0 changes)
 - [x] `git diff --check` clean
-- [x] `pytest -q` passes (192 tests)
+- [x] `pytest -q` passes (194 tests)
 - [x] `python -m build` succeeds
 - [x] Each new + modified command smoke-tested on temp fixtures
 - [x] CHANGELOG, release notes, handoff all written
@@ -64,7 +65,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 ## What needs Niko's eyes
 
-- **Revert command behavior**: the drift detection compares live content to the recorded backup snapshot before restoring. If you want per-write post-apply shas tracked in the manifest (for stronger post-apply audit), that's a small follow-up.
+- **Revert command behavior**: new successful applies record per-write post-apply shas in `backup_records`, so drift detection can distinguish a clean applied file from an operator edit after apply. Legacy artifacts still fall back to backup-vs-live drift comparison.
 - **Apply filter behavior**: filtered-out proposals stay `approved` so a later apply with a different filter can still land them. This is the right behavior for the use case, but it's a state-machine subtlety. Read `apply_artifact` to confirm.
 - **Re-run of reject without reason**: the CLI now exits 1 instead of erroring in argparse. If you want a different code, it's a one-liner in `cli.py`.
 - **`--from-since` count heuristic**: 4 sessions per day, capped at 50. If you want a different default, change the constant in `_resolve_creation_sources`.

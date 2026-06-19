@@ -8,7 +8,15 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .artifact import DreamArtifact, DreamProposal, DreamArtifactStateError, load_artifact, record_proposal_transition, write_artifact
+from .artifact import (
+    DreamArtifact,
+    DreamArtifactStateError,
+    DreamProposal,
+    load_artifact,
+    record_proposal_transition,
+    text_sha256,
+    write_artifact,
+)
 from .validation import validate_artifact
 
 
@@ -219,6 +227,19 @@ def _snapshot_plans(plans: list[_ApplyPlan]) -> tuple[list[str], list[dict[str, 
     return backup_paths, backup_records
 
 
+def _with_post_apply_snapshots(
+    plans: list[_ApplyPlan],
+    backup_records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    records = [dict(record) for record in backup_records]
+    for plan, record in zip(plans, records):
+        post_apply_exists = plan.target.exists()
+        record["post_apply_exists"] = post_apply_exists
+        if post_apply_exists:
+            record["post_apply_sha256"] = text_sha256(plan.target.read_text(encoding="utf-8"))
+    return records
+
+
 def _restore_plans(plans: list[_ApplyPlan]) -> None:
     for plan in reversed(plans):
         if plan.backup_path is not None and plan.backup_path.exists():
@@ -375,6 +396,7 @@ def apply_artifact(
         for plan in plans:
             _write_proposal(plan.target, plan.proposal)
             applied_ids.append(plan.proposal.id)
+        backup_records = _with_post_apply_snapshots(plans, backup_records)
     except Exception as exc:
         if plans:
             _restore_plans(plans)
@@ -419,17 +441,9 @@ def revert_artifact(
     - For files that existed before apply, restores the corresponding live
       file to the pre-apply content.
     - For files created by apply, removes the created live file on revert.
-    - Drift detection: if the live file's current content differs from the
-      post-apply content (we don't snapshot post-apply content; the spec
-      contract is "if the live file changed after apply, still restore from
-      backup, but record a drift_detected audit event"). We approximate this
-      by hashing the live file *before* the restore and comparing against the
-      pre-apply sha recorded in backup_paths. Since we don't store pre-apply
-      sha, we use the existence of a pre-write snapshot as the signal: we
-      always record a drift_detected event when the live file existed at apply
-      time but is missing now, OR when its sha no longer matches a sha we
-      record for the post-apply write. We capture the post-apply sha before
-      restore and write it into the audit event for traceability.
+    - Drift detection: current live content is compared to the recorded
+      post-apply sha when the artifact has one. Legacy artifacts without a
+      post-apply sha fall back to the older backup-vs-live comparison.
     - Rolls each applied proposal back to approved state.
     - Writes REVERT.md next to the artifact summarizing what happened.
     - Optionally validates the reverted artifact after restore when
@@ -500,9 +514,34 @@ def revert_artifact(
         existed_before_apply = bool(record.get("existed_before"))
         try:
             if not existed_before_apply:
+                expected_sha = str(record.get("post_apply_sha256") or "")
                 if target.exists():
+                    live_sha = text_sha256(target.read_text(encoding="utf-8"))
+                    if expected_sha and live_sha != expected_sha:
+                        drift_events.append(
+                            _make_revert_event(
+                                artifact,
+                                action="drift_detected",
+                                target=str(target),
+                                detail="created file content differed from recorded post-apply snapshot before removal",
+                                command="revert",
+                                expected_sha256=expected_sha,
+                                live_sha256=live_sha,
+                            )
+                        )
                     target.unlink()
                     removed_files.append(str(target))
+                elif expected_sha:
+                    drift_events.append(
+                        _make_revert_event(
+                            artifact,
+                            action="drift_detected",
+                            target=str(target),
+                            detail="created file was missing at revert time",
+                            command="revert",
+                            expected_sha256=expected_sha,
+                        )
+                    )
                 continue
 
             backup_path_text = str(record.get("backup_path") or "")
@@ -513,6 +552,7 @@ def revert_artifact(
 
             if not target.exists():
                 # Live file missing now (possibly already removed); record drift.
+                expected_sha = str(record.get("post_apply_sha256") or "")
                 drift_events.append(
                     _make_revert_event(
                         artifact,
@@ -520,24 +560,34 @@ def revert_artifact(
                         target=str(target),
                         detail="live file was missing at revert time",
                         command="revert",
+                        expected_sha256=expected_sha or None,
                     )
                 )
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(backup_path, target)
                 restored_files.append(str(target))
             else:
-                # Hash the live file before we overwrite, so we can attach
-                # post-apply sha to the audit event for traceability.
                 live_text = target.read_text(encoding="utf-8")
-                backup_text = backup_path.read_text(encoding="utf-8")
-                if live_text != backup_text:
+                live_sha = text_sha256(live_text)
+                expected_sha = str(record.get("post_apply_sha256") or "")
+                if expected_sha:
+                    drifted = live_sha != expected_sha
+                    detail = "live content differed from recorded post-apply snapshot before restore"
+                else:
+                    backup_text = backup_path.read_text(encoding="utf-8")
+                    expected_sha = text_sha256(backup_text)
+                    drifted = live_text != backup_text
+                    detail = "live content differed from pre-apply snapshot before restore"
+                if drifted:
                     drift_events.append(
                         _make_revert_event(
                             artifact,
                             action="drift_detected",
                             target=str(target),
-                            detail="live content differed from pre-apply snapshot before restore",
+                            detail=detail,
                             command="revert",
+                            expected_sha256=expected_sha,
+                            live_sha256=live_sha,
                         )
                     )
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -651,6 +701,8 @@ def _make_revert_event(
     removed: list[str] | None = None,
     rolled_back: list[str] | None = None,
     failures: list[str] | None = None,
+    expected_sha256: str | None = None,
+    live_sha256: str | None = None,
 ) -> dict[str, Any]:
     event: dict[str, Any] = {
         "timestamp": _now_iso(),
@@ -673,6 +725,10 @@ def _make_revert_event(
         event["rolled_back_proposal_ids"] = list(rolled_back)
     if failures is not None:
         event["failures"] = list(failures)
+    if expected_sha256 is not None:
+        event["expected_sha256"] = expected_sha256
+    if live_sha256 is not None:
+        event["live_sha256"] = live_sha256
     return event
 
 

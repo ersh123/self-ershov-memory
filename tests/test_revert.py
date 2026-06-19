@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_dreaming.artifact import DreamArtifact, DreamProposal, load_artifact, write_artifact
+from hermes_dreaming.artifact import DreamArtifact, DreamProposal, load_artifact, text_sha256, write_artifact
 from hermes_dreaming.apply import (
     REVERT_FILE,
     DreamRevertError,
@@ -143,6 +143,8 @@ def test_apply_then_revert_removes_file_created_by_apply(tmp_path: Path) -> None
             "proposal_id": "proposal-skills/new-review.md",
             "target_relative": "skills/new-review.md",
             "existed_before": False,
+            "post_apply_exists": True,
+            "post_apply_sha256": text_sha256(created_file.read_text(encoding="utf-8")),
         }
     ]
 
@@ -228,6 +230,58 @@ def test_revert_fails_loud_on_missing_backup_and_leaves_live_state(tmp_path: Pat
     # Audit event recorded.
     loaded = load_artifact(artifact_dir)
     assert any(event["action"] == "revert_failed" for event in loaded.revert_audit_events)
+
+
+def test_apply_then_revert_uses_post_apply_sha_to_avoid_false_drift(tmp_path: Path) -> None:
+    live_root = tmp_path / "live"
+    live_root.mkdir()
+    memory = live_root / "memory.md"
+    memory.write_text("# MEMORY\n\n- Existing note\n", encoding="utf-8")
+
+    artifact_dir = _write_artifact(
+        tmp_path,
+        artifact_id="artifact-revert-post-apply-sha",
+        live_root=live_root,
+        proposals=[_memory_proposal(tmp_path)],
+        status="validated",
+    )
+    backup_root = tmp_path / "backups"
+
+    apply_artifact(artifact_dir, live_root=live_root, backup_root=backup_root)
+    reverted = revert_artifact(artifact_dir, live_root=live_root, backup_root=backup_root, yes=True)
+
+    assert memory.read_text(encoding="utf-8") == "# MEMORY\n\n- Existing note\n"
+    assert not [event for event in reverted.revert_audit_events if event["action"] == "drift_detected"]
+
+
+def test_revert_records_drift_against_post_apply_sha(tmp_path: Path) -> None:
+    live_root = tmp_path / "live"
+    live_root.mkdir()
+    memory = live_root / "memory.md"
+    memory.write_text("# MEMORY\n\n- Existing note\n", encoding="utf-8")
+
+    artifact_dir = _write_artifact(
+        tmp_path,
+        artifact_id="artifact-revert-post-apply-drift",
+        live_root=live_root,
+        proposals=[_memory_proposal(tmp_path)],
+        status="validated",
+    )
+    backup_root = tmp_path / "backups"
+
+    applied = apply_artifact(artifact_dir, live_root=live_root, backup_root=backup_root)
+    expected_sha = str(applied.backup_records[0]["post_apply_sha256"])
+    memory.write_text(memory.read_text(encoding="utf-8") + "- Operator edit after apply\n", encoding="utf-8")
+    drift_sha = text_sha256(memory.read_text(encoding="utf-8"))
+
+    reverted = revert_artifact(artifact_dir, live_root=live_root, backup_root=backup_root, yes=True)
+
+    drift_events = [event for event in reverted.revert_audit_events if event["action"] == "drift_detected"]
+    assert len(drift_events) == 1
+    assert drift_events[0]["expected_sha256"] == expected_sha
+    assert drift_events[0]["live_sha256"] == drift_sha
+    assert "recorded post-apply snapshot" in drift_events[0]["detail"]
+    assert memory.read_text(encoding="utf-8") == "# MEMORY\n\n- Existing note\n"
 
 
 def test_revert_validate_after_records_failure_after_restore(tmp_path: Path) -> None:

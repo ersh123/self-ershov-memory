@@ -9,7 +9,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 ### Trust loop
 
 - **`ershov revert <artifact>`** restores live files from the recorded backups, removes files that were created by apply, and rolls an `applied` artifact back to a `reverted` state. Requires the artifact to be in `applied` status; anything else fails loud.
-  - Drift detection: if the live file changed after apply, a `drift_detected` audit event is recorded, but the restore still runs from backup.
+  - Drift detection: if the live file changed after apply, a `drift_detected` audit event is recorded with live and expected shas when available, but the restore still runs from backup.
   - On a missing backup file, revert aborts, leaves live state untouched, and records a `revert_failed` audit event.
   - `--validate` runs the existing artifact validator after restore and records `revert_validation_passed` or `revert_validation_failed` in the audit trail and `REVERT.md`.
   - Writes a `REVERT.md` next to the artifact summarizing what was restored, what was rolled back, what drifted, what validation found, and what failed.
@@ -40,6 +40,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 - **`ershov soak`** is the read-only scheduled-run gate. It checks recent successful `nightly` runs in `runs.jsonl`, fails on recent nightly failures by default, can require the user systemd timer to be enabled, active, loaded, pointed at `hermes-ershov-nightly.service`, and scheduled for a next elapse, and can require a matching ledger source, code revision, and clean checkout such as `--require-source systemd --require-commit <sha> --require-clean`. `--strict-systemd` bundles the stable release gate, auto-detects the current checkout commit, and refuses a dirty current git checkout. For public stable promotion, use `--min-successful 3 --since-hours 96 --strict-systemd` to require several scheduled nights. Commit matching requires at least 7 git hash characters on both sides.
 - **`report-card` and `digest` backup details** now separate real backup file copies from rollback evidence records and created-file tombstones, so apply-created files do not look like missing backup coverage.
 - **`ershov revert --validate`** adds a post-restore validation gate for rollback drills and release smokes without changing the default restore semantics.
+- **Per-write post-apply shas** are now stored in `backup_records` on successful apply and used by revert drift detection, so a normal apply→revert is not mislabeled as drift while operator edits after apply still are.
 - The root Hermes plugin wrapper now propagates non-zero CLI failures, so `hermes ershov ...` can be used as a real shell gate instead of only a human-readable wrapper.
 
 ## Data model
@@ -48,7 +49,7 @@ Three additive fields on `DreamArtifact`:
 
 - `reverted_at: str | None` — ISO timestamp of the last revert, if any
 - `revert_audit_events: list[dict]` — the revert audit trail (drift events, restore summary, partial-failure summary)
-- `backup_records: list[dict]` — per-target backup evidence; existing files point at a backup path, and files created by apply are recorded as `existed_before=false` tombstones so revert can remove them
+- `backup_records: list[dict]` — per-target backup evidence; existing files point at a backup path, files created by apply are recorded as `existed_before=false` tombstones so revert can remove them, and successful applies record `post_apply_exists` plus `post_apply_sha256` for drift checks
 
 `dry_run_report` is attached in-memory only during a single apply dry-run call and excluded from `manifest.json` so the on-disk contract stays stable across the dry-run feature.
 
@@ -60,17 +61,17 @@ Three additive fields on `DreamArtifact`:
 
 ## Verification
 
-- `pytest -q` passes (192 tests).
+- `pytest -q` passes (194 tests).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `git diff --check` clean.
-- Smoke-tested on temp fixtures for: `revert` (roundtrip, `--validate`, validation failure after restore, drift, missing backup, partial failure), `apply --dry-run` (preview without writes), `apply --priority` and `--target-kind` (filters), `inbox --apply-ready`, `providers list`, `--from-sessions` with redaction stats, `nightly --no-llm` no-op/staged paths, nightly lock rejection, nightly crash ledger recording, deterministic SessionDB override, plugin wrapper failure propagation, and source/commit/clean-checkout-aware `soak` pass/fail gates.
+- Smoke-tested on temp fixtures for: `revert` (roundtrip, `--validate`, validation failure after restore, post-apply sha no-drift path, post-apply sha drift path, legacy drift fallback, missing backup, partial failure), `apply --dry-run` (preview without writes), `apply --priority` and `--target-kind` (filters), `inbox --apply-ready`, `providers list`, `--from-sessions` with redaction stats, `nightly --no-llm` no-op/staged paths, nightly lock rejection, nightly crash ledger recording, deterministic SessionDB override, plugin wrapper failure propagation, and source/commit/clean-checkout-aware `soak` pass/fail gates.
 
 ## Known limitations
 
 - Stable release wording waits for at least one real scheduled systemd run followed by a passing `hermes ershov soak --strict-systemd`. Public stable promotion should wait for the stronger `hermes ershov soak --since-hours 96 --min-successful 3 --strict-systemd` gate. Manual service starts and transient timer smokes are useful evidence, but they are not the same as overnight scheduled runs.
 - Revert does not re-run validation by default. Use `ershov revert --validate` for a post-restore validation gate. If a reverted proposal is reapplied, validation runs normally as part of the apply path.
-- Drift detection compares the live file's pre-restore content to the recorded backup snapshot, but does not currently track per-write post-apply shas. Adding a per-write post-apply sha is a v0.5.0 candidate.
+- Legacy artifacts created before post-apply shas still use backup-vs-live drift comparison. New successful applies use recorded post-apply shas.
 - The `--from-since` window-to-count heuristic is conservative (4 sessions per day, capped at 50). If you want a more aggressive count, use `--from-sessions N` directly.
 - `soak` proves scheduled-run evidence only after a real timer/cron run has occurred; it does not itself wait overnight or run providers.
 

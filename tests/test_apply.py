@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_dreaming.artifact import DreamArtifact, DreamProposal, load_artifact, write_artifact
+from hermes_dreaming.artifact import DreamArtifact, DreamProposal, load_artifact, text_sha256, write_artifact
 from hermes_dreaming import apply as apply_module
 from hermes_dreaming.apply import apply_artifact, discard_artifact, DreamApplyError
 
@@ -61,6 +61,16 @@ def test_apply_appends_memory_and_writes_backup(tmp_path: Path) -> None:
     assert loaded.apply_errors == []
     assert loaded.validation_errors == []
     assert loaded.proposals[0].applied is True
+    assert loaded.backup_records == [
+        {
+            "proposal_id": proposal.id,
+            "target_relative": "memory.md",
+            "existed_before": True,
+            "backup_path": str(backup_root / "memory.md"),
+            "post_apply_exists": True,
+            "post_apply_sha256": text_sha256(memory.read_text(encoding="utf-8")),
+        }
+    ]
 
 
 def test_apply_prefers_existing_uppercase_memory_file(tmp_path: Path) -> None:

@@ -274,7 +274,7 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
         "--fix-plan",
         "CodeQL",
         "--min-successful 3 --strict-systemd",
-        "https://docs.pytest.org/en/8.3.x/explanation/goodpractices.html",
+        "https://docs.pytest.org/en/stable/explanation/goodpractices.html",
         "https://hypothesis.readthedocs.io/en/latest/stateful.html",
         "https://docs.github.com/actions/guides/building-and-testing-python",
         "https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options",

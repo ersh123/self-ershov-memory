@@ -55,11 +55,11 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - [x] `git status -sb` clean (except intentional v0.4.0 changes)
 - [x] `git diff --check` clean
-- [x] `pytest -q` passes (112 tests)
-- [x] `python -m build --wheel` succeeds
+- [x] `pytest -q` passes (146 tests)
+- [x] `python -m build` succeeds
 - [x] Each new + modified command smoke-tested on temp fixtures
 - [x] CHANGELOG, release notes, handoff all written
-- [ ] NO tag, NO release, NO push — Niko's call
+- [ ] NO tag, NO GitHub release, NO PyPI publish — Niko's call
 
 ## What needs Niko's eyes
 

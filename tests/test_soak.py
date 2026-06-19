@@ -130,6 +130,7 @@ def test_soak_report_can_require_successful_run_source(tmp_path: Path) -> None:
     assert len(report.source_matched_successful_nightly_runs) == 1
     assert len(report.commit_matched_successful_nightly_runs) == 1
     assert len(report.clean_matched_successful_nightly_runs) == 1
+    assert len(report.gate_matched_successful_nightly_runs) == 1
     assert "Required run source: `systemd`" in render_soak_report(report)
     assert "source=systemd" in render_soak_report(report)
 
@@ -174,6 +175,31 @@ def test_soak_report_can_require_successful_git_commit(tmp_path: Path) -> None:
     assert "commit=new2222" in output
 
 
+def test_soak_report_distinguishes_gate_matches_from_clean_matches(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(
+        state_root,
+        [_nightly(success=True, hours_ago=1, run_source="systemd", git_commit="abc1234", git_dirty=True)],
+    )
+
+    report = build_soak_report(
+        state_root=state_root,
+        now=NOW,
+        required_source="systemd",
+        required_commit="abc1234",
+    )
+
+    assert report.passed is True
+    assert report.require_clean is False
+    assert len(report.commit_matched_successful_nightly_runs) == 1
+    assert len(report.gate_matched_successful_nightly_runs) == 1
+    assert len(report.clean_matched_successful_nightly_runs) == 0
+    output = render_soak_report(report)
+    assert "Gate-matching successful nightly runs: `1`" in output
+    assert "Clean successful nightly runs: `0`" in output
+    assert "dirty=true" in output
+
+
 def test_soak_report_fails_when_required_git_commit_is_missing(tmp_path: Path) -> None:
     state_root = tmp_path / "state"
     _write_ledger(state_root, [_nightly(success=True, hours_ago=2, run_source="systemd", git_commit="old1111")])
@@ -212,8 +238,10 @@ def test_soak_report_can_require_clean_checkout(tmp_path: Path) -> None:
     assert report.require_clean is True
     assert len(report.commit_matched_successful_nightly_runs) == 2
     assert len(report.clean_matched_successful_nightly_runs) == 1
+    assert len(report.gate_matched_successful_nightly_runs) == 1
     output = render_soak_report(report)
     assert "Require clean checkout: `true`" in output
+    assert "Gate-matching successful nightly runs: `1`" in output
     assert "dirty=false" in output
 
 

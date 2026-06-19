@@ -39,6 +39,7 @@ class SoakReport:
     source_matched_successful_nightly_runs: list[dict[str, Any]]
     commit_matched_successful_nightly_runs: list[dict[str, Any]]
     clean_matched_successful_nightly_runs: list[dict[str, Any]]
+    gate_matched_successful_nightly_runs: list[dict[str, Any]]
     recent_failed_nightly_runs: list[dict[str, Any]]
     timer: TimerProbe
     reasons: list[str]
@@ -165,14 +166,13 @@ def build_soak_report(
     commit_matched_successes = [
         record for record in source_matched_successes if _commit_matches(record, required_commit=normalized_required_commit)
     ]
-    clean_matched_successes = (
-        [record for record in commit_matched_successes if _is_clean(record)] if require_clean else commit_matched_successes
-    )
+    clean_matched_successes = [record for record in commit_matched_successes if _is_clean(record)]
+    gate_matched_successes = clean_matched_successes if require_clean else commit_matched_successes
     recent_failures = [record for record in recent_nightly if not bool(record.get("success"))]
 
     timer = _probe_timer(timer_name=timer_name, runner=runner, checked=require_timer)
     reasons: list[str] = []
-    if len(clean_matched_successes) < min_successful:
+    if len(gate_matched_successes) < min_successful:
         filters = []
         if normalized_required_source is not None:
             filters.append(f"source '{normalized_required_source}'")
@@ -182,7 +182,7 @@ def build_soak_report(
             filters.append("clean checkout")
         filter_suffix = "" if not filters else " matching " + " and ".join(filters)
         reasons.append(
-            f"found {len(clean_matched_successes)} successful nightly run(s){filter_suffix} in the last {since_hours}h; "
+            f"found {len(gate_matched_successes)} successful nightly run(s){filter_suffix} in the last {since_hours}h; "
             f"required {min_successful}"
         )
     if recent_failures and not allow_failures:
@@ -209,6 +209,7 @@ def build_soak_report(
         source_matched_successful_nightly_runs=source_matched_successes,
         commit_matched_successful_nightly_runs=commit_matched_successes,
         clean_matched_successful_nightly_runs=clean_matched_successes,
+        gate_matched_successful_nightly_runs=gate_matched_successes,
         recent_failed_nightly_runs=recent_failures,
         timer=timer,
         reasons=reasons,
@@ -259,6 +260,7 @@ def render_soak_report(report: SoakReport) -> str:
         f"- Successful nightly runs in window: `{len(report.recent_successful_nightly_runs)}`",
         f"- Source-matching successful nightly runs: `{len(report.source_matched_successful_nightly_runs)}`",
         f"- Commit-matching successful nightly runs: `{len(report.commit_matched_successful_nightly_runs)}`",
+        f"- Gate-matching successful nightly runs: `{len(report.gate_matched_successful_nightly_runs)}`",
         f"- Clean successful nightly runs: `{len(report.clean_matched_successful_nightly_runs)}`",
         f"- Failed nightly runs in window: `{len(report.recent_failed_nightly_runs)}`",
         f"- Total nightly runs in ledger: `{report.total_nightly_runs}`",
@@ -268,7 +270,7 @@ def render_soak_report(report: SoakReport) -> str:
         "## Latest successful nightly",
         "",
     ]
-    latest_successes = report.clean_matched_successful_nightly_runs
+    latest_successes = report.gate_matched_successful_nightly_runs
     if latest_successes:
         lines.append(f"- {_format_record(latest_successes[-1])}")
     else:

@@ -41,8 +41,7 @@ service reads that file if it exists and leaves it untouched on reinstall.
 After the first scheduled run has actually fired, verify it with:
 
 ```bash
-COMMIT="$(git -C ~/.hermes/plugins/hermes-ershov rev-parse --short HEAD)"
-ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer --require-source systemd --require-commit "$COMMIT" --require-clean
+hermes ershov soak --state-root ~/.hermes/ershov --since-hours 30 --strict-systemd
 ```
 
 Manual starts prove the service command works. `--require-timer` checks that the
@@ -53,6 +52,9 @@ only accepts ledger entries written by the systemd service environment.
 released. Commit matches require at least 7 git hash characters on both sides,
 so a too-short historical ledger prefix cannot satisfy the gate. `--require-clean`
 rejects runs produced by a dirty installed checkout.
+`--strict-systemd` applies those release gates and auto-detects the current
+checkout commit. It refuses a dirty current git checkout; if the checkout is not
+a git repo, pass `--require-commit`.
 A passing `soak` after the real schedule fires is the stronger
 evidence for stable operations.
 

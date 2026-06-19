@@ -5,6 +5,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from hermes_dreaming import cli as cli_module
 from hermes_dreaming.cli import main
 from hermes_dreaming.commands.install_systemd import SERVICE_NAME, TIMER_NAME
 from hermes_dreaming.commands.soak import build_soak_report, render_soak_report, render_soak_report_json
@@ -438,3 +439,58 @@ def test_soak_cli_returns_zero_when_gate_passes(tmp_path: Path, capsys) -> None:
     assert payload["required_source"] == "systemd"
     assert payload["required_commit"] == "abc1234"
     assert payload["require_clean"] is True
+
+
+def test_soak_cli_strict_systemd_fills_release_gate_defaults(tmp_path: Path, monkeypatch, capsys) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234")])
+    captured: dict[str, object] = {}
+
+    def fake_build_soak_report(**kwargs):  # type: ignore[no-untyped-def]
+        captured.update(kwargs)
+        return build_soak_report(
+            state_root=kwargs["state_root"],
+            since_hours=kwargs["since_hours"],
+            min_successful=kwargs["min_successful"],
+            require_timer=False,
+            required_source=kwargs["required_source"],
+            required_commit=kwargs["required_commit"],
+            require_clean=kwargs["require_clean"],
+            allow_failures=kwargs["allow_failures"],
+            now=NOW,
+    )
+
+    monkeypatch.setattr(cli_module, "_current_git_commit", lambda: "abc1234")
+    monkeypatch.setattr(cli_module, "_current_git_dirty", lambda: False)
+    monkeypatch.setattr(cli_module, "build_soak_report", fake_build_soak_report)
+
+    assert main(["soak", "--state-root", str(state_root), "--since-hours", "30", "--strict-systemd", "--json"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["passed"] is True
+    assert captured["require_timer"] is True
+    assert captured["required_source"] == "systemd"
+    assert captured["required_commit"] == "abc1234"
+    assert captured["require_clean"] is True
+    assert captured["allow_failures"] is False
+
+
+def test_soak_cli_strict_systemd_rejects_allow_failures(tmp_path: Path) -> None:
+    try:
+        main(["soak", "--state-root", str(tmp_path / "state"), "--strict-systemd", "--allow-failures"])
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("strict systemd soak should reject --allow-failures")
+
+
+def test_soak_cli_strict_systemd_rejects_dirty_current_checkout(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(cli_module, "_current_git_commit", lambda: "abc1234")
+    monkeypatch.setattr(cli_module, "_current_git_dirty", lambda: True)
+
+    try:
+        main(["soak", "--state-root", str(tmp_path / "state"), "--strict-systemd"])
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("strict systemd soak should reject a dirty current checkout")

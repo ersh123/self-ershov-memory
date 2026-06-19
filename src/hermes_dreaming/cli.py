@@ -4,6 +4,7 @@ import argparse
 from datetime import timedelta
 import os
 from pathlib import Path
+import subprocess
 
 from .analyze import DreamRunConfig, create_dream_artifact, render_report_card_json, render_report_card_markdown
 from .artifact import load_artifact
@@ -59,6 +60,41 @@ def _discover_update_repo_root() -> Path:
         return canonical
 
     return Path(__file__).resolve().parents[2]
+
+
+def _current_git_commit(repo_root: Path | None = None) -> str | None:
+    root = repo_root or Path(__file__).resolve().parents[2]
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    commit = result.stdout.strip()
+    return commit or None
+
+
+def _current_git_dirty(repo_root: Path | None = None) -> bool | None:
+    root = repo_root or Path(__file__).resolve().parents[2]
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "status", "--short"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return bool(result.stdout.strip())
 
 
 def _add_creation_arguments(parser: argparse.ArgumentParser, *, required_source: bool = True) -> None:
@@ -281,6 +317,7 @@ def build_parser() -> argparse.ArgumentParser:
     soak.add_argument("--require-source", default=None, help="Require successful nightly runs to have this run_source, e.g. systemd")
     soak.add_argument("--require-commit", default=None, help="Require successful nightly runs to match this git commit")
     soak.add_argument("--require-clean", action="store_true", help="Require successful nightly runs to come from a clean git checkout")
+    soak.add_argument("--strict-systemd", action="store_true", help="Shortcut for the stable systemd release gate using the current git commit")
     soak.add_argument("--timer-name", default="hermes-ershov-nightly.timer", help="systemd user timer name to inspect")
     soak.add_argument("--allow-failures", action="store_true", help="Do not fail when failed nightly runs exist inside the window")
     soak.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
@@ -945,15 +982,34 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "soak":
+        require_timer = args.require_timer
+        required_source = args.require_source
+        required_commit = args.require_commit
+        require_clean = args.require_clean
+        if args.strict_systemd:
+            if args.allow_failures:
+                parser.error("--strict-systemd cannot be combined with --allow-failures")
+            if required_source is not None and required_source.strip().lower() != "systemd":
+                parser.error("--strict-systemd requires --require-source systemd")
+            require_timer = True
+            required_source = "systemd"
+            require_clean = True
+            current_dirty = _current_git_dirty()
+            if current_dirty is True:
+                parser.error("--strict-systemd requires the current git checkout to be clean")
+            if required_commit is None:
+                required_commit = _current_git_commit()
+                if required_commit is None:
+                    parser.error("--strict-systemd could not detect the current git commit; pass --require-commit")
         try:
             report = build_soak_report(
                 state_root=args.state_root,
                 since_hours=args.since_hours,
                 min_successful=args.min_successful,
-                require_timer=args.require_timer,
-                required_source=args.require_source,
-                required_commit=args.require_commit,
-                require_clean=args.require_clean,
+                require_timer=require_timer,
+                required_source=required_source,
+                required_commit=required_commit,
+                require_clean=require_clean,
                 timer_name=args.timer_name,
                 allow_failures=args.allow_failures,
             )

@@ -159,7 +159,9 @@ def test_release_docs_use_current_test_count() -> None:
         assert "250 tests" not in text, path
         assert "251 tests" not in text, path
         assert "252 tests" not in text, path
-        assert "254 tests" in text, path
+        assert "254 tests" not in text, path
+        assert "255 tests" not in text, path
+        assert "256 tests" in text, path
 
 
 def test_release_docs_document_stronger_public_stable_promotion_gate() -> None:
@@ -283,6 +285,11 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
         "--fix-plan",
         "CodeQL",
         "OpenSSF Scorecard",
+        "ClusterFuzzLite",
+        "Atheris",
+        "local fuzz harness smoke",
+        "ClusterFuzzLite PR/manual fuzzing",
+        "ClusterFuzzLite wiring",
         "SARIF uploaded to code scanning",
         "persist-credentials: false",
         "full commit SHAs",
@@ -293,6 +300,9 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
         "https://docs.astral.sh/uv/guides/integration/github/",
         "https://docs.astral.sh/uv/guides/integration/dependabot/",
         "https://github.com/ossf/scorecard-action",
+        "https://github.com/ossf/scorecard/blob/main/docs/checks.md#fuzzing",
+        "https://google.github.io/clusterfuzzlite/running-clusterfuzzlite/github-actions/",
+        "https://google.github.io/clusterfuzzlite/build-integration/python-lang/",
         "--min-successful 3 --strict-systemd",
         "https://docs.pytest.org/en/stable/explanation/goodpractices.html",
         "https://hypothesis.readthedocs.io/en/latest/stateful.html",

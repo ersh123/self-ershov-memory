@@ -43,6 +43,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] Smoke `ershov nightly --no-llm` with no eligible markers: exits `no-op`, creates no invalid empty artifact
 - [ ] Smoke `HERMES_ERSHOV_SESSION_DB=/tmp/state.db ershov nightly --no-llm` with controlled marker input through the installed CLI
 - [ ] Smoke the root Hermes plugin wrapper: `python scripts/hermes_plugin_smoke.py`
+- [ ] Smoke the local fuzz harness: `pytest -q tests/test_fuzz_harness.py`
 - [ ] Smoke `ershov install-cron`
 - [ ] Smoke `ershov install-systemd --dry-run`
 - [ ] After a real scheduled run, smoke the fast RC gate: `hermes ershov soak --state-root ~/.hermes/ershov --since-hours 30 --min-successful 1 --strict-systemd`
@@ -54,6 +55,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] Confirm the release workflow only uploads assets on a GitHub `release` event and does not publish to package indexes
 - [ ] Confirm Dependabot is enabled for GitHub Actions and uv-managed Python package metadata
 - [ ] Confirm OpenSSF Scorecard is enabled and uploads SARIF to GitHub code scanning
+- [ ] Confirm ClusterFuzzLite PR/manual fuzzing is wired to `.clusterfuzzlite/` and uses pinned actions
 - [ ] Confirm checkout steps use `persist-credentials: false` unless a job explicitly needs a persisted token
 - [ ] Confirm workflow `uses:` actions are pinned to full commit SHAs with version comments
 - [ ] Confirm CI and release workflows use locked uv installs and contain no `pip install` commands

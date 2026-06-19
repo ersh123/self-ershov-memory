@@ -64,7 +64,7 @@ def test_checkouts_do_not_persist_github_tokens() -> None:
 
 
 def test_repeatable_analysis_workflows_cancel_stale_runs() -> None:
-    for workflow_name in ("ci.yml", "codeql.yml", "scorecard.yml"):
+    for workflow_name in ("ci.yml", "codeql.yml", "scorecard.yml", "cflite_pr.yml"):
         text = (REPO_ROOT / ".github" / "workflows" / workflow_name).read_text(encoding="utf-8")
         assert "concurrency:" in text, workflow_name
         assert "group: ${{ github.workflow }}-${{ github.ref }}" in text, workflow_name
@@ -151,3 +151,31 @@ def test_python_classifier_matches_ci_matrix() -> None:
         assert f"'{version}'" in ci
         assert f"Programming Language :: Python :: {version}" in pyproject
         assert version in testing_doc
+
+
+def test_clusterfuzzlite_python_fuzzing_integration_is_present() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "cflite_pr.yml").read_text(encoding="utf-8")
+    project_yaml = (REPO_ROOT / ".clusterfuzzlite" / "project.yaml").read_text(encoding="utf-8")
+    dockerfile = (REPO_ROOT / ".clusterfuzzlite" / "Dockerfile").read_text(encoding="utf-8")
+    build_script = (REPO_ROOT / ".clusterfuzzlite" / "build.sh").read_text(encoding="utf-8")
+    fuzzer = (REPO_ROOT / "fuzzers" / "ershov_safety_fuzzer.py").read_text(encoding="utf-8")
+
+    for phrase in (
+        "pull_request:",
+        "workflow_dispatch:",
+        "contents: read",
+        "timeout-minutes: 20",
+        "uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1",
+        "uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1",
+        "language: python",
+        "fuzz-seconds: 60",
+        "persist-credentials: false",
+    ):
+        assert phrase in workflow
+    assert project_yaml.strip() == "language: python"
+    assert "base-builder-python@sha256:f9c1da511e00d7072cb2ca41ca02af9090f39581d2efb45a62da7b9fb9dac850" in dockerfile
+    assert "PYTHONPATH=\"$SRC/hermes-ershov/src" in build_script
+    assert "pip install" not in build_script
+    assert "pyinstaller --distpath \"$OUT\" --onefile" in build_script
+    assert "def TestOneInput(data: bytes) -> None:" in fuzzer
+    assert "atheris.Setup(sys.argv, TestOneInput)" in fuzzer

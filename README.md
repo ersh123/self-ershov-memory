@@ -69,8 +69,8 @@ The plugin also bundles a Hermes skill named `ershov`. Load that bare name insid
 - **Recent-session reader** with fallback chain (SessionDB → SQLite → pointer-log)
 - **Nightly memory pipeline** for dialogue harvest, staged review artifacts, digests, inbox digest, compaction, and run-ledger audit
 - **Cron and user-systemd installers** for the full nightly memory pipeline
-- **Test suite, plugin smoke, CI, and CodeQL pass**
-- **Repo hygiene:** `uv.lock`, private security advisory path, issue/PR templates, CODEOWNERS, weekly Dependabot checks, OpenSSF Scorecard SARIF, and checkout-token hardening for GitHub Actions
+- **Test suite, property-based tests, fuzz harness, plugin smoke, CI, and CodeQL pass**
+- **Repo hygiene:** `uv.lock`, private security advisory path, issue/PR templates, CODEOWNERS, weekly Dependabot checks, OpenSSF Scorecard SARIF, ClusterFuzzLite fuzzing, and checkout-token hardening for GitHub Actions
 
 ## Install
 
@@ -294,6 +294,6 @@ uv run --locked --extra dev pytest -q
 uv run --locked --extra dev python -m build --wheel
 ```
 
-The public release gate uses the fuller matrix in `docs/testing.md`: unit and CLI tests, property-based tests, plugin wrapper smoke, build/wheel/sdist smoke, docs guards, CodeQL, and scheduled-run soak evidence.
+The public release gate uses the fuller matrix in `docs/testing.md`: unit and CLI tests, property-based tests, fuzz harness smoke, plugin wrapper smoke, build/wheel/sdist smoke, docs guards, CodeQL, ClusterFuzzLite, and scheduled-run soak evidence.
 
 The repo is intentionally self-contained and ready for public beta / release-candidate review.

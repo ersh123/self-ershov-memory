@@ -15,6 +15,9 @@ The matrix follows the current public docs for:
 - GitHub CodeQL workflow configuration: https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options
 - GitHub Dependabot configuration: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
 - OpenSSF Scorecard GitHub Action: https://github.com/ossf/scorecard-action
+- OpenSSF Scorecard Fuzzing check: https://github.com/ossf/scorecard/blob/main/docs/checks.md#fuzzing
+- ClusterFuzzLite GitHub Actions: https://google.github.io/clusterfuzzlite/running-clusterfuzzlite/github-actions/
+- ClusterFuzzLite Python integration: https://google.github.io/clusterfuzzlite/build-integration/python-lang/
 
 ## Local gates
 
@@ -63,6 +66,7 @@ GitHub Actions runs the same release-shaped matrix:
 - full pytest suite
 - coverage report for `hermes_dreaming`, `hermes_ershov`, and `hermes_mnemos`, with an 80% minimum gate
 - property-based tests from `tests/test_pbt.py`
+- local fuzz harness smoke from `tests/test_fuzz_harness.py`
 - timer-visible provider readiness smoke with `providers doctor --from-systemd`, `status --release-gate --fix-plan`, `soak --fix-plan`, and explicit `--env-file`
 - strict systemd release-gate tests that include timer-visible provider readiness and required-provider mismatch checks
 - Hermes plugin wrapper smoke
@@ -72,6 +76,7 @@ GitHub Actions runs the same release-shaped matrix:
 - CodeQL on push, pull request, schedule, and manual dispatch
 - Dependabot weekly version-update checks for GitHub Actions and uv-managed Python package metadata
 - OpenSSF Scorecard on weekly schedule and manual dispatch, with SARIF uploaded to code scanning
+- ClusterFuzzLite PR/manual fuzzing for the Python safety harness through `.clusterfuzzlite/` and `fuzzers/ershov_safety_fuzzer.py`
 - checkout-token hardening through `persist-credentials: false` on repository checkout steps
 - workflow action pinning to full commit SHAs with adjacent version comments
 - isolated wheel and source distribution smoke through `uv run --no-project --isolated --with dist/*`
@@ -88,10 +93,11 @@ The suite is intentionally mixed:
 - CLI tests for user-facing command behavior and exit codes
 - integration smokes for create, validate, apply, revert, status, update, nightly, and plugin wrapping
 - property-based tests for path safety, scoring thresholds, systemd escaping, and soak commit matching
+- ClusterFuzzLite/Atheris fuzz target coverage for path validation, env quoting, provider fact parsing, memory-op validation, and score gates
 - docs guards that fail when release-facing text drifts from shipped behavior
 - local markdown link/image guards for release-facing docs
 - release workflow guards that prevent accidental PyPI publishing or release creation
-- supply-chain workflow guards for Scorecard permissions, SARIF output, checkout token persistence, full-SHA action pinning, workflow timeout/concurrency controls, and top-level permission minimization
+- supply-chain workflow guards for Scorecard permissions, SARIF output, checkout token persistence, full-SHA action pinning, ClusterFuzzLite wiring, workflow timeout/concurrency controls, and top-level permission minimization
 - negative tests for malformed provider output, fabricated provenance, fabricated quotes/snippets, unsafe paths, missing backups, and no-op nightlies
 
 ## Stable-release evidence

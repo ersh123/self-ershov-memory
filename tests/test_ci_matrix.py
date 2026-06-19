@@ -67,6 +67,8 @@ def test_scorecard_workflow_reports_supply_chain_security_to_code_scanning() -> 
         "security-events: write",
         "id-token: write",
         "uses: ossf/scorecard-action@v2.4.3",
+        "uses: actions/upload-artifact@v7",
+        "uses: actions/download-artifact@v8",
         "results_file: scorecard-results.sarif",
         "results_format: sarif",
         "publish_results: true",
@@ -75,6 +77,9 @@ def test_scorecard_workflow_reports_supply_chain_security_to_code_scanning() -> 
         "persist-credentials: false",
     ):
         assert phrase in text
+    top_level_permissions = text.split("jobs:", 1)[0]
+    assert "security-events: write" not in top_level_permissions
+    assert "id-token: write" not in top_level_permissions
 
 
 def test_dependabot_monitors_actions_and_python_dependencies() -> None:

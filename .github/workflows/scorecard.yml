@@ -7,13 +7,14 @@ on:
 
 permissions:
   contents: read
-  security-events: write
-  id-token: write
 
 jobs:
-  analyze:
-    name: analyze supply-chain posture
+  scorecard:
+    name: run scorecard
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Check out repository
@@ -27,6 +28,28 @@ jobs:
           results_file: scorecard-results.sarif
           results_format: sarif
           publish_results: true
+
+      - name: Upload Scorecard artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: scorecard-results
+          path: scorecard-results.sarif
+          if-no-files-found: error
+
+  upload-sarif:
+    name: upload scorecard sarif
+    runs-on: ubuntu-latest
+    needs: scorecard
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Download Scorecard artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: scorecard-results
+          path: .
 
       - name: Upload Scorecard SARIF
         uses: github/codeql-action/upload-sarif@v4

@@ -45,6 +45,9 @@ jobs:
           /tmp/ershov-release-smoke/bin/python -m pip install dist/*.whl
           /tmp/ershov-release-smoke/bin/ershov --help
           /tmp/ershov-release-smoke/bin/mnemos --help
+          /tmp/ershov-release-smoke/bin/nightmem --help
+          /tmp/ershov-release-smoke/bin/dreaming --help
+          /tmp/ershov-release-smoke/bin/python -m hermes_dreaming --help
           /tmp/ershov-release-smoke/bin/python -m hermes_ershov --help
           /tmp/ershov-release-smoke/bin/python -m hermes_mnemos --help
 

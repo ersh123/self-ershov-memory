@@ -61,5 +61,7 @@ jobs:
           /tmp/ershov-wheel-smoke/bin/ershov --help
           /tmp/ershov-wheel-smoke/bin/mnemos --help
           /tmp/ershov-wheel-smoke/bin/nightmem --help
+          /tmp/ershov-wheel-smoke/bin/dreaming --help
+          /tmp/ershov-wheel-smoke/bin/python -m hermes_dreaming --help
           /tmp/ershov-wheel-smoke/bin/python -m hermes_ershov --help
           /tmp/ershov-wheel-smoke/bin/python -m hermes_mnemos --help

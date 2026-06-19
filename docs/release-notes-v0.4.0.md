@@ -67,13 +67,14 @@ Three additive fields on `DreamArtifact`:
 
 ## Verification
 
-- `pytest -q` passes (262 tests).
+- `pytest -q` passes (265 tests).
 - `pytest -q tests/test_pbt.py` passes and keeps the property-based path safety, systemd escaping, scoring, and soak commit-prefix invariants visible in the release matrix.
 - `pytest -q tests/test_fuzz_harness.py` passes and keeps the ClusterFuzzLite/Atheris Python fuzz harness locally smoke-tested.
 - Coverage gate passes with `--cov-fail-under=80` (current local total: 84.52%).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
-- `python scripts/verify_release_artifacts.py --dist dist` verifies wheel metadata, source distribution metadata, SPDX SBOM package coverage, purl refs, locked SHA256 checksums, and root dependency relationships.
+- `python scripts/generate_release_checksums.py --dist dist` writes `SHA256SUMS` for the wheel, source distribution, and SPDX SBOM release assets.
+- `python scripts/verify_release_artifacts.py --dist dist` verifies wheel metadata, source distribution metadata, SPDX SBOM package coverage, purl refs, locked SHA256 checksums, root dependency relationships, and `SHA256SUMS` integrity.
 - `git diff --check` clean.
 - Smoke-tested on temp fixtures for: `revert` (roundtrip, `--validate`, validation failure after restore, post-apply sha no-drift path, post-apply sha drift path, `legacy-degraded` drift fallback, missing backup, partial failure), `apply --dry-run` (preview without writes), `apply --priority` and `--target-kind` (filters), `inbox --apply-ready`, `providers list`, `providers doctor` configuration readiness plus `--from-systemd`, `--fix-plan`, and explicit env-file checks, `--from-sessions` with redaction stats, `nightly --no-llm` no-op/staged paths, nightly lock rejection, nightly crash ledger recording, deterministic SessionDB override, plugin wrapper failure propagation, and source/commit/clean-checkout/provider-aware `soak` pass/fail gates.
 

@@ -28,6 +28,7 @@ def test_release_workflow_build_job_uses_ci_strength_gates() -> None:
         "python scripts/hermes_plugin_smoke.py",
         "python -m build",
         "uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json",
+        "uv run --locked --extra dev python scripts/generate_release_checksums.py --dist dist",
         "uv run --locked --extra dev python scripts/verify_release_artifacts.py --dist dist",
         "ershov providers doctor --provider offline-marker --strict",
         "ershov providers doctor --provider deepseek --env-file /tmp/ershov-release-nightly.env --fix-plan --strict",
@@ -61,6 +62,7 @@ def test_release_workflow_uploads_assets_only_for_release_event() -> None:
     assert "uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0" in upload_chunk
     assert "subject-path: dist/*" in upload_chunk
     assert "hermes-ershov-sbom.spdx.json" in build_chunk
+    assert "generate_release_checksums.py --dist dist" in build_chunk
     assert "verify_release_artifacts.py" in build_chunk
     assert 'gh release upload "$GITHUB_REF_NAME" dist/* --clobber' in upload_chunk
 

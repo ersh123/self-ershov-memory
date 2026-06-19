@@ -37,14 +37,15 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 ## Verification gates
 
-- `python -m pytest -q` (262 tests pass)
+- `python -m pytest -q` (265 tests pass)
 - `python -m pytest -q tests/test_pbt.py` (property-based safety invariants pass)
 - `python -m pytest -q tests/test_fuzz_harness.py` (local fuzz harness seed smoke passes)
 - coverage gate `--cov-fail-under=80` (current local total: 84.52%)
 - `git diff --check` (clean)
 - `python3 -m build` (succeeds)
 - `python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json` (succeeds)
-- `python scripts/verify_release_artifacts.py --dist dist` (wheel, sdist, and SBOM bundle pass)
+- `python scripts/generate_release_checksums.py --dist dist` (writes `SHA256SUMS`)
+- `python scripts/verify_release_artifacts.py --dist dist` (wheel, sdist, SBOM, and checksum bundle pass)
 - Temp-only Ershov smoke with `HERMES_ERSHOV_STATE_ROOT`:
   - `status --release-gate --fix-plan` shows stable blockers, last nightly rows, timer health, next scheduled elapse, and secret-safe provider remediation
   - apply→revert roundtrip on a real fixture
@@ -69,7 +70,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - [x] `git status -sb` clean (except intentional v0.4.0 changes)
 - [x] `git diff --check` clean
-- [x] `pytest -q` passes (262 tests)
+- [x] `pytest -q` passes (265 tests)
 - [x] `pytest -q tests/test_pbt.py` passes
 - [x] `pytest -q tests/test_fuzz_harness.py` passes
 - [x] `python -m build` succeeds

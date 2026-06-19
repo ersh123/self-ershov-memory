@@ -19,6 +19,7 @@ EXPECTED_CONSOLE_SCRIPTS = {
     "dreaming": "hermes_dreaming.cli:main",
 }
 SBOM_NAME = "hermes-ershov-sbom.spdx.json"
+CHECKSUM_MANIFEST = "SHA256SUMS"
 
 
 class VerificationError(Exception):
@@ -54,6 +55,27 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _read_checksum_manifest(path: Path) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) != 2:
+            raise VerificationError(f"{path.name}:{line_number} must contain '<sha256>  <filename>'")
+        digest, filename = parts
+        if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+            raise VerificationError(f"{path.name}:{line_number} has invalid SHA256 digest")
+        if "/" in filename or "\\" in filename or filename in {".", ".."}:
+            raise VerificationError(f"{path.name}:{line_number} has unsafe filename {filename!r}")
+        if filename in entries:
+            raise VerificationError(f"{path.name}:{line_number} duplicates {filename!r}")
+        entries[filename] = digest
+    if not entries:
+        raise VerificationError(f"{path.name} is empty")
+    return entries
 
 
 def _read_zip_text(zip_path: Path, suffix: str) -> str:
@@ -274,15 +296,28 @@ def verify_release_artifacts(*, dist_dir: Path, pyproject_path: Path, lock_path:
     wheel = _single_file(dist_dir, f"{normalized_name}-{project_version}-*.whl", "wheel")
     sdist = _single_file(dist_dir, f"{normalized_name}-{project_version}.tar.gz", "sdist")
     sbom = _single_file(dist_dir, SBOM_NAME, "SPDX SBOM")
+    checksum_manifest = _single_file(dist_dir, CHECKSUM_MANIFEST, "checksum manifest")
 
     _assert_wheel(wheel, project_name=project_name, project_version=project_version)
     _assert_sdist(sdist, project_name=project_name, project_version=project_version)
     _assert_sbom(sbom, project_name=project_name, project_version=project_version, lock_path=lock_path)
 
+    expected_files = {wheel.name, sdist.name, sbom.name}
+    checksum_entries = _read_checksum_manifest(checksum_manifest)
+    if set(checksum_entries) != expected_files:
+        missing = sorted(expected_files - set(checksum_entries))
+        extra = sorted(set(checksum_entries) - expected_files)
+        raise VerificationError(f"{CHECKSUM_MANIFEST} file set mismatch: missing={missing}, extra={extra}")
+    for path in (wheel, sdist, sbom):
+        actual = _sha256(path)
+        if checksum_entries[path.name] != actual:
+            raise VerificationError(f"{CHECKSUM_MANIFEST} digest mismatch for {path.name}")
+
     return [
         f"wheel {wheel.name} sha256={_sha256(wheel)}",
         f"sdist {sdist.name} sha256={_sha256(sdist)}",
         f"sbom {sbom.name} sha256={_sha256(sbom)}",
+        f"checksums {checksum_manifest.name} entries={len(checksum_entries)}",
     ]
 
 

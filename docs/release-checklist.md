@@ -35,6 +35,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] `uv sync --locked --extra dev`
 - [ ] `python -m build`
 - [ ] `python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json`
+- [ ] `python scripts/generate_release_checksums.py --dist dist`
 - [ ] `python scripts/verify_release_artifacts.py --dist dist`
 - [ ] Smoke wheel and source distribution installs against all public CLI aliases
 - [ ] Smoke `ershov providers doctor --provider offline-marker --strict` and confirm it is described as configuration readiness, not end-to-end generation

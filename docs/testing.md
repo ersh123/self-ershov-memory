@@ -20,6 +20,7 @@ The matrix follows the current public docs for:
 - ClusterFuzzLite Python integration: https://google.github.io/clusterfuzzlite/build-integration/python-lang/
 - PyPI Trusted Publishing: https://docs.pypi.org/trusted-publishers/using-a-publisher/
 - GitHub artifact attestations: https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
+- GitHub release integrity verification: https://docs.github.com/code-security/supply-chain-security/understanding-your-software-supply-chain/verifying-the-integrity-of-a-release
 - SPDX package information: https://spdx.github.io/spdx-spec/v2.3/package-information/
 - OpenSSF Scorecard Packaging: https://github.com/ossf/scorecard/blob/main/docs/checks.md#packaging
 
@@ -82,6 +83,7 @@ GitHub Actions runs the same release-shaped matrix:
 - OpenSSF Scorecard on weekly schedule and manual dispatch, with SARIF uploaded to code scanning
 - ClusterFuzzLite PR/manual fuzzing for the Python safety harness through `.clusterfuzzlite/` and `fuzzers/ershov_safety_fuzzer.py`
 - SPDX release SBOM generation into `dist/hermes-ershov-sbom.spdx.json`
+- `SHA256SUMS` generation for the wheel, source distribution, and SPDX SBOM release assets
 - release artifact verification for wheel metadata, source distribution metadata, SBOM package coverage, purl refs, locked SHA256 checksums, and root dependency relationships
 - GitHub Release asset attestations on release-event uploads
 - PyPI Trusted Publishing through OIDC on GitHub `release` events only, with GitHub artifact attestations for the built distributions

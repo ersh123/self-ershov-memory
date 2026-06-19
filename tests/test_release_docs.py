@@ -166,7 +166,10 @@ def test_release_docs_use_current_test_count() -> None:
         assert "259 tests" not in text, path
         assert "260 tests" not in text, path
         assert "261 tests" not in text, path
-        assert "262 tests" in text, path
+        assert "262 tests" not in text, path
+        assert "263 tests" not in text, path
+        assert "264 tests" not in text, path
+        assert "265 tests" in text, path
 
 
 def test_release_docs_document_stronger_public_stable_promotion_gate() -> None:
@@ -299,6 +302,7 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
         "GitHub artifact attestations",
         "GitHub Release asset attestations",
         "SPDX release SBOM generation",
+        "SHA256SUMS",
         "release artifact verification",
         "release-event-only PyPI publishing",
         "SARIF uploaded to code scanning",
@@ -316,6 +320,7 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
         "https://google.github.io/clusterfuzzlite/build-integration/python-lang/",
         "https://docs.pypi.org/trusted-publishers/using-a-publisher/",
         "https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds",
+        "https://docs.github.com/code-security/supply-chain-security/understanding-your-software-supply-chain/verifying-the-integrity-of-a-release",
         "https://spdx.github.io/spdx-spec/v2.3/package-information/",
         "https://github.com/ossf/scorecard/blob/main/docs/checks.md#packaging",
         "--min-successful 3 --strict-systemd",

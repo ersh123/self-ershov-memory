@@ -61,6 +61,22 @@ def release_dist(tmp_path_factory: pytest.TempPathFactory) -> Path:
         check=True,
         stdout=subprocess.DEVNULL,
     )
+    subprocess.run(
+        [
+            "uv",
+            "run",
+            "--locked",
+            "--extra",
+            "dev",
+            "python",
+            "scripts/generate_release_checksums.py",
+            "--dist",
+            str(dist),
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
     return dist
 
 
@@ -73,10 +89,11 @@ def test_release_artifact_verifier_accepts_built_dist(release_dist: Path) -> Non
         lock_path=REPO_ROOT / "uv.lock",
     )
 
-    assert len(evidence) == 3
+    assert len(evidence) == 4
     assert any(line.startswith("wheel hermes_ershov-0.4.0") for line in evidence)
     assert any(line.startswith("sdist hermes_ershov-0.4.0") for line in evidence)
     assert any(line.startswith("sbom hermes-ershov-sbom.spdx.json") for line in evidence)
+    assert "checksums SHA256SUMS entries=3" in evidence
 
 
 def test_release_artifact_verifier_rejects_sbom_missing_locked_package(
@@ -96,6 +113,28 @@ def test_release_artifact_verifier_rejects_sbom_missing_locked_package(
     sbom_path.write_text(json.dumps(sbom), encoding="utf-8")
 
     with pytest.raises(module.VerificationError, match="SBOM package set mismatch"):
+        module.verify_release_artifacts(
+            dist_dir=dist,
+            pyproject_path=REPO_ROOT / "pyproject.toml",
+            lock_path=REPO_ROOT / "uv.lock",
+        )
+
+
+def test_release_artifact_verifier_rejects_stale_checksums(
+    release_dist: Path,
+    tmp_path: Path,
+) -> None:
+    module = _load_release_artifact_module()
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    for artifact in release_dist.iterdir():
+        target = dist / artifact.name
+        target.write_bytes(artifact.read_bytes())
+
+    sbom_path = dist / "hermes-ershov-sbom.spdx.json"
+    sbom_path.write_text(sbom_path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+
+    with pytest.raises(module.VerificationError, match="SHA256SUMS digest mismatch"):
         module.verify_release_artifacts(
             dist_dir=dist,
             pyproject_path=REPO_ROOT / "pyproject.toml",

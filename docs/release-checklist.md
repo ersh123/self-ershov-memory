@@ -32,7 +32,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] `pytest -q tests/test_pbt.py`
 - [ ] `python -m compileall -q __init__.py src scripts`
 - [ ] `git diff --check`
-- [ ] `python -m pip install build` if needed
+- [ ] `uv sync --locked --extra dev`
 - [ ] `python -m build`
 - [ ] Smoke wheel and source distribution installs against all public CLI aliases
 - [ ] Smoke `ershov providers doctor --provider offline-marker --strict` and confirm it is described as configuration readiness, not end-to-end generation
@@ -52,10 +52,11 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] Confirm `docs/testing.md` still matches the GitHub Actions matrix
 - [ ] Confirm local markdown links/images pass the docs guard
 - [ ] Confirm the release workflow only uploads assets on a GitHub `release` event and does not publish to package indexes
-- [ ] Confirm Dependabot is enabled for GitHub Actions and Python package metadata
+- [ ] Confirm Dependabot is enabled for GitHub Actions and uv-managed Python package metadata
 - [ ] Confirm OpenSSF Scorecard is enabled and uploads SARIF to GitHub code scanning
 - [ ] Confirm checkout steps use `persist-credentials: false` unless a job explicitly needs a persisted token
 - [ ] Confirm workflow `uses:` actions are pinned to full commit SHAs with version comments
+- [ ] Confirm CI and release workflows use locked uv installs and contain no `pip install` commands
 - [ ] Confirm every GitHub Actions job has `timeout-minutes` and repeatable analysis workflows use concurrency cancellation
 - [ ] Confirm write permissions for SARIF/code-scanning uploads are scoped to the upload/analyze job
 

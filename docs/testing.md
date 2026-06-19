@@ -10,6 +10,8 @@ The matrix follows the current public docs for:
 - Hypothesis property-based and stateful testing: https://hypothesis.readthedocs.io/en/latest/stateful.html
 - GitHub Actions Python build/test workflows: https://docs.github.com/actions/guides/building-and-testing-python
 - GitHub Actions workflow syntax, timeouts, and concurrency: https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions
+- uv GitHub Actions integration: https://docs.astral.sh/uv/guides/integration/github/
+- uv Dependabot integration: https://docs.astral.sh/uv/guides/integration/dependabot/
 - GitHub CodeQL workflow configuration: https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options
 - GitHub Dependabot configuration: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
 - OpenSSF Scorecard GitHub Action: https://github.com/ossf/scorecard-action
@@ -19,12 +21,13 @@ The matrix follows the current public docs for:
 Run these before a release-facing change:
 
 ```bash
-uv run --extra dev python -m pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80
-uv run --extra dev python -m pytest -q tests/test_pbt.py
-python3 -m compileall -q __init__.py src scripts
+uv sync --locked --extra dev
+uv run --locked --extra dev python -m pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80
+uv run --locked --extra dev python -m pytest -q tests/test_pbt.py
+uv run --locked --extra dev python -m compileall -q __init__.py src scripts
 git diff --check
-uv run --extra dev python -m build
-python3 scripts/hermes_plugin_smoke.py
+uv run --locked --extra dev python -m build
+uv run --locked --extra dev python scripts/hermes_plugin_smoke.py
 ```
 
 For installed-artifact confidence, smoke the wheel in a temporary virtualenv and run at least:
@@ -53,6 +56,8 @@ The provider env-file smoke is timer-visible only: `--from-systemd` reads the de
 GitHub Actions runs the same release-shaped matrix:
 
 - Python 3.11, 3.12, and 3.13
+- `uv.lock` backed dependency resolution through pinned `astral-sh/setup-uv`
+- locked dev environment sync with `uv sync --locked --extra dev`
 - whitespace check with `git diff --check`
 - bytecode compile with `compileall`
 - full pytest suite
@@ -65,10 +70,12 @@ GitHub Actions runs the same release-shaped matrix:
 - installed wheel smoke for every public console and module alias
 - installed source distribution smoke for every public console and module alias
 - CodeQL on push, pull request, schedule, and manual dispatch
-- Dependabot weekly version-update checks for GitHub Actions and Python package metadata
+- Dependabot weekly version-update checks for GitHub Actions and uv-managed Python package metadata
 - OpenSSF Scorecard on weekly schedule and manual dispatch, with SARIF uploaded to code scanning
 - checkout-token hardening through `persist-credentials: false` on repository checkout steps
 - workflow action pinning to full commit SHAs with adjacent version comments
+- isolated wheel and source distribution smoke through `uv run --no-project --isolated --with dist/*`
+- workflow install hardening: CI and release workflows avoid `pip install` and use the committed lockfile
 - workflow-level concurrency for repeatable analysis jobs and job-level `timeout-minutes` on every GitHub Actions job
 - job-scoped write permissions for SARIF/code-scanning uploads; top-level workflow permissions stay read-only unless the workflow has no narrower safe option
 - release asset workflow build runs under read-only repository permissions; asset upload is isolated to a separate `release`-event-only job with `contents: write`

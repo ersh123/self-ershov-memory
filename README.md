@@ -70,20 +70,20 @@ The plugin also bundles a Hermes skill named `ershov`. Load that bare name insid
 - **Nightly memory pipeline** for dialogue harvest, staged review artifacts, digests, inbox digest, compaction, and run-ledger audit
 - **Cron and user-systemd installers** for the full nightly memory pipeline
 - **Test suite, plugin smoke, CI, and CodeQL pass**
-- **Repo hygiene:** private security advisory path, issue/PR templates, CODEOWNERS, weekly Dependabot checks, OpenSSF Scorecard SARIF, and checkout-token hardening for GitHub Actions
+- **Repo hygiene:** `uv.lock`, private security advisory path, issue/PR templates, CODEOWNERS, weekly Dependabot checks, OpenSSF Scorecard SARIF, and checkout-token hardening for GitHub Actions
 
 ## Install
 
 For end-user installs, use the plugin path in `docs/install-update.md`. For local development:
 
 ```bash
-python -m pip install -e .[dev]
+uv sync --extra dev
 ```
 
 If you want the optional OpenAI-compatible provider:
 
 ```bash
-python -m pip install -e .[llm]
+uv sync --extra llm
 ```
 
 ## LLM connectors
@@ -282,16 +282,16 @@ The artifact is intentionally simple, deterministic, and easy to review on disk 
 If you want to contribute, start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Use the issue templates so the scope and intent are clear.
-- Run `pytest -q`, `python -m build --wheel`, and `git diff --check` before requesting review.
+- Run `uv run --locked --extra dev pytest -q`, `uv run --locked --extra dev python -m build --wheel`, and `git diff --check` before requesting review.
 - If your change touches live roots, artifact roots, or writeback behavior, state that explicitly.
 - If you change release-facing text or safety rules, make sure the docs still match shipped behavior.
 
 ## Development
 
 ```bash
-pytest -q
-python -m pip install build
-python -m build --wheel
+uv sync --locked --extra dev
+uv run --locked --extra dev pytest -q
+uv run --locked --extra dev python -m build --wheel
 ```
 
 The public release gate uses the fuller matrix in `docs/testing.md`: unit and CLI tests, property-based tests, plugin wrapper smoke, build/wheel/sdist smoke, docs guards, CodeQL, and scheduled-run soak evidence.

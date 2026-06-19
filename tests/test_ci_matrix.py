@@ -14,6 +14,8 @@ def test_ci_workflow_shows_release_shaped_test_matrix() -> None:
         assert version in text
     for gate in (
         "git diff --check",
+        "uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0",
+        "uv sync --locked --extra dev",
         "python -m compileall -q __init__.py src scripts",
         "pytest -q",
         "--cov=hermes_dreaming",
@@ -24,8 +26,8 @@ def test_ci_workflow_shows_release_shaped_test_matrix() -> None:
         "python -m build",
         "dist/*.whl",
         "dist/*.tar.gz",
-        "/tmp/ershov-wheel-smoke/bin/ershov --help",
-        "/tmp/ershov-sdist-smoke/bin/ershov --help",
+        "uv run --no-project --isolated --with dist/*.whl ershov --help",
+        "uv run --no-project --isolated --with dist/*.tar.gz ershov --help",
         "providers doctor --provider offline-marker --strict",
         "providers doctor --provider deepseek --env-file /tmp/ershov-wheel-nightly.env --fix-plan --strict",
         "status --release-gate",
@@ -127,11 +129,17 @@ def test_dependabot_monitors_actions_and_python_dependencies() -> None:
     text = (REPO_ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
 
     assert "version: 2" in text
-    for ecosystem in ('package-ecosystem: "github-actions"', 'package-ecosystem: "pip"'):
+    for ecosystem in ('package-ecosystem: "github-actions"', 'package-ecosystem: "uv"'):
         assert ecosystem in text
     assert text.count('directory: "/"') == 2
     assert text.count('interval: "weekly"') == 2
     assert "open-pull-requests-limit: 5" in text
+
+    for workflow_name in ("ci.yml", "release.yml"):
+        workflow = (REPO_ROOT / ".github" / "workflows" / workflow_name).read_text(encoding="utf-8")
+        assert "uv sync --locked --extra dev" in workflow
+        assert "uv run --locked --extra dev" in workflow
+        assert "pip install" not in workflow
 
 
 def test_python_classifier_matches_ci_matrix() -> None:

@@ -15,6 +15,8 @@ def test_release_workflow_build_job_uses_ci_strength_gates() -> None:
 
     for gate in (
         "git diff --check",
+        "uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0",
+        'uv sync --locked --extra dev --python "3.12"',
         "python -m compileall -q __init__.py src scripts",
         "pytest -q --cov=hermes_dreaming",
         "--cov-fail-under=80",
@@ -29,7 +31,8 @@ def test_release_workflow_build_job_uses_ci_strength_gates() -> None:
         "DEEPSEEK_API_KEY=<secret>",
         "sk-release-do-not-print",
         "secret leaked from soak fix-plan",
-        "ershov revert --help",
+        "uv run --no-project --isolated --with dist/*.whl ershov revert --help",
+        "uv run --no-project --isolated --with dist/*.tar.gz ershov --help",
     ):
         assert gate in text
 

@@ -816,6 +816,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"reverted_at: {reverted.reverted_at}")
         if args.validate_after:
             print("post_revert_validation: passed")
+        else:
+            print("post_revert_validation: not-run (pass --validate to verify restored artifact)")
         _record_cli_run(
             "revert",
             success=True,

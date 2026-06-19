@@ -8,6 +8,7 @@
 - Added `ershov inbox --apply-ready` to surface artifacts where every proposal is approved (or already applied). The inbox digest also renders a "Ready to apply" section.
 - Added `ershov providers list` to introspect the built-in providers (`offline-marker`, `openai-compatible`, `deepseek`, `openrouter`, `ollama`) without pinging external services. `--no-llm` is a shorthand for `--provider offline-marker` on `create`, `review`, and `nightly`.
 - Added `ershov soak` as a read-only release gate for scheduled nightly memory: it checks recent successful `nightly` runs, recent failures, and optionally the user systemd timer.
+- Hardened provider output grounding: schema-valid model proposals are rejected if `source_quote` or `snippet` does not match a cited source line.
 - Hardened the root Hermes plugin wrapper so `hermes ershov ...` propagates non-zero CLI failures to the shell instead of returning success after printing an error.
 - Hardened `nightly --no-llm` so harvests without eligible `MEMORY:` / `DREAM:` markers exit as clean `no-op` runs instead of invalid empty artifacts.
 - Added `HERMES_ERSHOV_SESSION_DB` for deterministic harvest/nightly smoke tests against a specific SessionDB-compatible SQLite file.

@@ -35,12 +35,13 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 ## Verification gates
 
-- `python -m pytest -q` (194 tests pass)
+- `python -m pytest -q` (198 tests pass)
 - `git diff --check` (clean)
 - `python3 -m build` (succeeds)
 - Temp-only Ershov smoke with `HERMES_ERSHOV_STATE_ROOT`:
   - apply→revert roundtrip on a real fixture
   - `revert --validate` pass/fail audit paths
+  - revert without `--validate` reports `post_revert_validation: not-run`
   - post-apply sha no-drift and drift audit paths
   - revert on a non-applied artifact raises and leaves live state untouched
   - revert with a missing backup fails loud
@@ -50,6 +51,7 @@ This is the short follow-up note for the v0.4.0 release lane.
   - `inbox --apply-ready` filters correctly
   - `providers list` prints the table without pinging
   - `create --from-sessions 5` prints redaction stats and feeds the bundle
+  - provider output rejects schema-valid invented `source_quote` / `snippet` evidence
   - `--no-llm` overrides `--provider` to `offline-marker`
   - `reject` without a reason returns exit 1
 
@@ -57,7 +59,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - [x] `git status -sb` clean (except intentional v0.4.0 changes)
 - [x] `git diff --check` clean
-- [x] `pytest -q` passes (194 tests)
+- [x] `pytest -q` passes (198 tests)
 - [x] `python -m build` succeeds
 - [x] Each new + modified command smoke-tested on temp fixtures
 - [x] CHANGELOG, release notes, handoff all written

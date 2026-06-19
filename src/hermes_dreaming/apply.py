@@ -577,7 +577,7 @@ def revert_artifact(
                     backup_text = backup_path.read_text(encoding="utf-8")
                     expected_sha = text_sha256(backup_text)
                     drifted = live_text != backup_text
-                    detail = "live content differed from pre-apply snapshot before restore"
+                    detail = "live content differed from legacy backup snapshot before restore"
                 if drifted:
                     drift_events.append(
                         _make_revert_event(
@@ -657,6 +657,15 @@ def revert_artifact(
                 action="revert_validation_failed" if validation_errors else "revert_validation_passed",
                 command="revert --validate",
                 failures=validation_errors or None,
+            )
+        )
+    elif not validate_after and not failures:
+        audit_events.append(
+            _make_revert_event(
+                artifact,
+                action="revert_validation_not_run",
+                command="revert",
+                reason="--validate not requested",
             )
         )
     artifact.revert_audit_events.extend(audit_events)
@@ -843,7 +852,7 @@ def _render_revert_markdown(
         lines.append("- none")
     lines.extend(["", "## Post-revert validation", ""])
     if not validation_requested:
-        lines.append("- not requested")
+        lines.append("- not run; pass `--validate` to verify the restored artifact")
     elif validation_errors is None:
         lines.append("- not run because revert failed before validation")
     elif validation_errors:

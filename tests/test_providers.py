@@ -227,6 +227,74 @@ def test_openai_compatible_provider_rejects_fabricated_provenance(monkeypatch, t
         OpenAICompatibleProvider(model="qwen2.5:3b", api_key="ollama").generate([_source()], _context(tmp_path))
 
 
+def test_openai_compatible_provider_rejects_fabricated_source_quote(
+    monkeypatch, tmp_path: Path
+) -> None:
+    _install_fake_openai(
+        monkeypatch,
+        """{
+  "report": "Report body",
+  "proposals": [
+    {
+      "id": "valid",
+      "target_kind": "user",
+      "target_path": "user.md",
+      "mode": "append_text",
+      "summary": "User prefers two strong options.",
+      "provenance": ["sources/session.md:1"],
+      "proposed_text": "- Prefer two strong options over six weak ones.",
+      "confidence": 0.92,
+      "snippet": "User: Prefer two strong options over six weak ones.",
+      "risk": "medium",
+      "priority": "high",
+      "reason": "user preference is explicit and actionable",
+      "source_quote": "User: Prefer twelve weak options.",
+      "policy_flags": ["profile_preference", "safe_append"],
+      "approved": true
+    }
+  ],
+  "notes": []
+}""",
+    )
+
+    with pytest.raises(RuntimeError, match="source_quote must match"):
+        OpenAICompatibleProvider(model="qwen2.5:3b", api_key="ollama").generate([_source()], _context(tmp_path))
+
+
+def test_openai_compatible_provider_rejects_fabricated_snippet(
+    monkeypatch, tmp_path: Path
+) -> None:
+    _install_fake_openai(
+        monkeypatch,
+        """{
+  "report": "Report body",
+  "proposals": [
+    {
+      "id": "valid",
+      "target_kind": "user",
+      "target_path": "user.md",
+      "mode": "append_text",
+      "summary": "User prefers two strong options.",
+      "provenance": ["sources/session.md:1"],
+      "proposed_text": "- Prefer two strong options over six weak ones.",
+      "confidence": 0.92,
+      "snippet": "User: Prefer twelve weak options.",
+      "risk": "medium",
+      "priority": "high",
+      "reason": "user preference is explicit and actionable",
+      "source_quote": "User: Prefer two strong options over six weak ones.",
+      "policy_flags": ["profile_preference", "safe_append"],
+      "approved": true
+    }
+  ],
+  "notes": []
+}""",
+    )
+
+    with pytest.raises(RuntimeError, match="snippet must match"):
+        OpenAICompatibleProvider(model="qwen2.5:3b", api_key="ollama").generate([_source()], _context(tmp_path))
+
+
 def test_openai_compatible_provider_rejects_structured_proposed_text(monkeypatch, tmp_path: Path) -> None:
     _install_fake_openai(
         monkeypatch,

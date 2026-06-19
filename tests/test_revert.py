@@ -157,6 +157,8 @@ def test_apply_then_revert_removes_file_created_by_apply(tmp_path: Path) -> None
     revert_md = (artifact_dir / REVERT_FILE).read_text(encoding="utf-8")
     assert "Removed files: `1`" in revert_md
     assert str(created_file) in revert_md
+    assert "not run; pass `--validate`" in revert_md
+    assert any(event["action"] == "revert_validation_not_run" for event in reverted.revert_audit_events)
 
 
 def test_revert_rejects_non_applied_artifact(tmp_path: Path) -> None:
@@ -439,3 +441,39 @@ def test_cli_revert_end_to_end_with_yes(tmp_path: Path, capsys) -> None:
     assert "reverted artifact" in output
     assert "post_revert_validation: passed" in output
     assert memory.read_text(encoding="utf-8") == "# MEMORY\n\n- Existing note\n"
+
+
+def test_cli_revert_without_validate_warns_validation_not_run(tmp_path: Path, capsys) -> None:
+    live_root = tmp_path / "live"
+    live_root.mkdir()
+    memory = live_root / "memory.md"
+    memory.write_text("# MEMORY\n\n- Existing note\n", encoding="utf-8")
+
+    proposal = _memory_proposal(tmp_path)
+    artifact_dir = _write_artifact(
+        tmp_path,
+        live_root=live_root,
+        proposals=[proposal],
+        status="validated",
+    )
+    backup_root = tmp_path / "backups"
+
+    apply_artifact(artifact_dir, live_root=live_root, backup_root=backup_root)
+
+    exit_code = main(
+        [
+            "revert",
+            str(artifact_dir),
+            "--live-root",
+            str(live_root),
+            "--backup-root",
+            str(backup_root),
+            "--yes",
+        ]
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "post_revert_validation: not-run" in output
+    assert "pass --validate" in output
+    assert "not run; pass `--validate`" in (artifact_dir / REVERT_FILE).read_text(encoding="utf-8")

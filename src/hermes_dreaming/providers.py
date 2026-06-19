@@ -306,9 +306,10 @@ class OpenAICompatibleProvider:
             proposals_value = []
         if not isinstance(proposals_value, list):
             raise ProviderOutputError(self.name, "proposals must be a list", payload_hash=payload_hash)
-        source_refs = self._source_refs(sources)
+        source_lines = self._source_lines(sources)
+        source_refs = set(source_lines)
         proposals = [
-            self._normalize_proposal(item, source_refs=source_refs, payload_hash=payload_hash)
+            self._normalize_proposal(item, source_lines=source_lines, source_refs=source_refs, payload_hash=payload_hash)
             for item in proposals_value
         ]
         proposals = self._dedupe_proposals(proposals, payload_hash=payload_hash)
@@ -326,14 +327,34 @@ class OpenAICompatibleProvider:
         return [str(value)]
 
     @staticmethod
-    def _source_refs(sources: list[SourceSnapshot]) -> set[str]:
-        refs: set[str] = set()
+    def _source_lines(sources: list[SourceSnapshot]) -> dict[str, str]:
+        lines: dict[str, str] = {}
         for source in sources:
+            split_lines = source.content.splitlines()
             for line_number in range(1, source.line_count + 1):
-                refs.add(f"{source.path}:{line_number}")
-        return refs
+                text = split_lines[line_number - 1] if line_number <= len(split_lines) else ""
+                lines[f"{source.path}:{line_number}"] = text
+        return lines
 
-    def _normalize_proposal(self, value: object, *, source_refs: set[str], payload_hash: str) -> DreamProposal:
+    @staticmethod
+    def _matches_cited_line(text: str, *, provenance: list[str], source_lines: dict[str, str]) -> bool:
+        needle = " ".join(text.split())
+        if not needle:
+            return False
+        for ref in provenance:
+            line = " ".join(source_lines.get(ref, "").split())
+            if needle in line or line in needle:
+                return True
+        return False
+
+    def _normalize_proposal(
+        self,
+        value: object,
+        *,
+        source_lines: dict[str, str],
+        source_refs: set[str],
+        payload_hash: str,
+    ) -> DreamProposal:
         if not isinstance(value, dict):
             raise ProviderOutputError(self.name, "each proposal must be a JSON object", payload_hash=payload_hash)
 
@@ -415,6 +436,19 @@ class OpenAICompatibleProvider:
             )
 
         snippet = require_string("snippet")
+        source_quote = require_string("source_quote")
+        if not self._matches_cited_line(source_quote, provenance=provenance, source_lines=source_lines):
+            raise ProviderOutputError(
+                self.name,
+                "proposal source_quote must match a cited source line",
+                payload_hash=payload_hash,
+            )
+        if not self._matches_cited_line(snippet, provenance=provenance, source_lines=source_lines):
+            raise ProviderOutputError(
+                self.name,
+                "proposal snippet must match a cited source line",
+                payload_hash=payload_hash,
+            )
         risk = require_string("risk").lower()
         if risk not in {"low", "medium", "high"}:
             raise ProviderOutputError(self.name, f"proposal risk {risk!r} is unsupported", payload_hash=payload_hash)
@@ -441,7 +475,7 @@ class OpenAICompatibleProvider:
                 "risk": risk,
                 "priority": priority,
                 "reason": require_string("reason"),
-                "source_quote": require_string("source_quote"),
+                "source_quote": source_quote,
                 "policy_flags": policy_flags,
                 "notes": value.get("notes"),
             }

@@ -108,6 +108,7 @@ def test_readme_has_single_discard_example_and_trust_loop_notes() -> None:
     assert "`--dry-run` deliberately creates no backups and writes no live files" in text
     assert "records backup evidence in the artifact manifest before live writes" in text
     assert "`backup_records` tombstones" in text
+    assert "Schema-valid model output is still treated as untrusted" in text
 
 
 def test_release_docs_use_current_test_count() -> None:
@@ -127,7 +128,8 @@ def test_release_docs_use_current_test_count() -> None:
         assert "191 tests" not in text, path
         assert "192 tests" not in text, path
         assert "193 tests" not in text, path
-        assert "194 tests" in text, path
+        assert "194 tests" not in text, path
+        assert "198 tests" in text, path
 
 
 def test_release_docs_document_stronger_public_stable_promotion_gate() -> None:
@@ -142,3 +144,19 @@ def test_release_docs_document_stronger_public_stable_promotion_gate() -> None:
     for path in docs:
         text = path.read_text(encoding="utf-8")
         assert gate in text, path
+
+
+def test_release_docs_keep_revert_validation_and_provider_grounding_honest() -> None:
+    docs = [
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "CHANGELOG.md",
+        REPO_ROOT / "docs" / "safety.md",
+        REPO_ROOT / "docs" / "release-notes-v0.4.0.md",
+        REPO_ROOT / "docs" / "release-handoff-v0.4.0.md",
+    ]
+    for path in docs:
+        text = path.read_text(encoding="utf-8")
+        if "revert" in text:
+            assert "not-run" in text or path.name == "CHANGELOG.md", path
+        if "provider" in text.lower() or "Provider" in text:
+            assert "source_quote" in text or "provenance" in text, path

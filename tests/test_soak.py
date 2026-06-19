@@ -24,13 +24,16 @@ def _write_ledger(state_root: Path, records: list[dict[str, object]]) -> None:
     )
 
 
-def _nightly(*, success: bool, hours_ago: int, status: str = "staged") -> dict[str, object]:
+def _nightly(
+    *, success: bool, hours_ago: int, status: str = "staged", run_source: str = "manual"
+) -> dict[str, object]:
     return {
         "command": "nightly",
         "success": success,
         "timestamp": _iso(-hours_ago),
         "artifact_id": "artifact-1" if success else None,
         "artifact_status": status,
+        "run_source": run_source,
         "summary": "nightly staged proposals" if success else "nightly failed",
     }
 
@@ -101,6 +104,37 @@ def test_soak_report_can_require_healthy_systemd_timer(tmp_path: Path) -> None:
     ]
 
 
+def test_soak_report_can_require_successful_run_source(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(
+        state_root,
+        [
+            _nightly(success=True, hours_ago=2, status="no-op", run_source="manual"),
+            _nightly(success=True, hours_ago=1, status="no-op", run_source="systemd"),
+        ],
+    )
+
+    report = build_soak_report(state_root=state_root, now=NOW, required_source="systemd")
+
+    assert report.passed is True
+    assert report.required_source == "systemd"
+    assert len(report.recent_successful_nightly_runs) == 2
+    assert len(report.source_matched_successful_nightly_runs) == 1
+    assert "Required run source: `systemd`" in render_soak_report(report)
+    assert "source=systemd" in render_soak_report(report)
+
+
+def test_soak_report_fails_when_required_source_is_missing(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, status="no-op", run_source="manual")])
+
+    report = build_soak_report(state_root=state_root, now=NOW, required_source="systemd")
+
+    assert report.passed is False
+    assert "source 'systemd'" in report.reasons[0]
+    assert "Matching successful nightly runs: `0`" in render_soak_report(report)
+
+
 def test_soak_report_json_is_machine_readable(tmp_path: Path) -> None:
     state_root = tmp_path / "state"
     _write_ledger(state_root, [_nightly(success=True, hours_ago=2)])
@@ -125,9 +159,24 @@ def test_soak_cli_returns_nonzero_when_gate_fails(tmp_path: Path, capsys) -> Non
 
 def test_soak_cli_returns_zero_when_gate_passes(tmp_path: Path, capsys) -> None:
     state_root = tmp_path / "state"
-    _write_ledger(state_root, [_nightly(success=True, hours_ago=2)])
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, run_source="systemd")])
 
-    assert main(["soak", "--state-root", str(state_root), "--since-hours", "72", "--json"]) == 0
+    assert (
+        main(
+            [
+                "soak",
+                "--state-root",
+                str(state_root),
+                "--since-hours",
+                "72",
+                "--require-source",
+                "systemd",
+                "--json",
+            ]
+        )
+        == 0
+    )
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["passed"] is True
+    assert payload["required_source"] == "systemd"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 
 from ..analyze import DreamRunConfig, create_dream_artifact
@@ -31,6 +32,7 @@ class NightlyMemoryResult:
     harvest_result: HarvestResult
     success: bool
     summary: str
+    run_source: str
 
 
 def _state_root(path: Path | None) -> Path:
@@ -55,6 +57,12 @@ def _uses_offline_marker_provider(provider_name: str) -> bool:
 
 def _has_offline_memory_markers(content: str) -> bool:
     return any(MARKER_RE.match(line) for line in content.splitlines())
+
+
+def _run_source_from_env() -> str:
+    value = os.environ.get("HERMES_ERSHOV_RUN_SOURCE", "manual")
+    normalized = "".join(char if char.isalnum() or char in {"-", "_", "."} else "-" for char in value.strip().lower())
+    return normalized[:64] or "manual"
 
 
 def _write_noop_digest(*, path: Path, result: NightlyMemoryResult) -> None:
@@ -97,6 +105,7 @@ def _record_nightly_run(result: NightlyMemoryResult) -> None:
             "artifact_dir": str(result.artifact_dir) if result.artifact_dir is not None else None,
             "artifact_root": str(result.artifact_root),
             "live_root": str(result.live_root),
+            "run_source": result.run_source,
             "summary": result.summary,
             "sessions": len(result.harvest_result.sessions),
             "redactions": result.harvest_result.redaction_count,
@@ -132,6 +141,7 @@ def run_nightly_memory(
     artifact_root = Path(artifact_root)
     archive_root = Path(archive_root) if archive_root is not None else artifact_root.parent / "archive"
     resolved_state_root = _state_root(state_root)
+    run_source = _run_source_from_env()
     source_bundle = _source_bundle_path(artifact_root)
 
     harvest = harvest_recent(
@@ -176,6 +186,7 @@ def run_nightly_memory(
             harvest_result=harvest,
             success=success,
             summary=summary,
+            run_source=run_source,
         )
         _write_noop_digest(path=digest_path, result=result)
         _record_nightly_run(result)
@@ -237,6 +248,7 @@ def run_nightly_memory(
         harvest_result=harvest,
         success=success,
         summary=summary,
+        run_source=run_source,
     )
     _record_nightly_run(result)
     return result
@@ -253,6 +265,7 @@ def render_nightly_memory(result: NightlyMemoryResult) -> str:
         f"- Live root: `{result.live_root}`",
         f"- Artifact root: `{result.artifact_root}`",
         f"- Source bundle: `{result.source_bundle}`",
+        f"- Run source: `{result.run_source}`",
         f"- Digest: `{result.digest_path}`",
         f"- Inbox digest: `{result.inbox_digest_path}`",
         f"- Sessions harvested: `{len(result.harvest_result.sessions)}`",

@@ -186,6 +186,29 @@ def test_run_nightly_memory_noops_without_offline_markers_and_does_not_create_ar
     assert ledger[0]["artifact_status"] == "no-op"
     assert ledger[0]["artifact_dir"] is None
     assert ledger[0]["proposals"] == 0
+    assert ledger[0]["run_source"] == "manual"
+
+
+def test_run_nightly_memory_records_sanitized_run_source(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(nightly_module, "harvest_recent", _empty_harvest)
+    monkeypatch.setenv("HERMES_ERSHOV_RUN_SOURCE", "Systemd Timer\nInjected=bad")
+    live_root = _live_root(tmp_path)
+    artifact_root = tmp_path / "artifacts"
+    state_root = tmp_path / "state"
+
+    result = run_nightly_memory(
+        live_root=live_root,
+        artifact_root=artifact_root,
+        state_root=state_root,
+        provider_name="offline-marker",
+        model=None,
+        base_url=None,
+        compact=False,
+    )
+
+    assert result.success is True
+    assert result.run_source == "systemd-timer-injected-bad"
+    assert read_run_ledger(ledger_path=state_root / "runs.jsonl")[0]["run_source"] == "systemd-timer-injected-bad"
 
 
 def test_run_nightly_memory_records_invalid_artifact_without_live_write(tmp_path: Path, monkeypatch) -> None:

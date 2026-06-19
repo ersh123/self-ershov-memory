@@ -247,6 +247,8 @@ def test_install_cron_registers_nightly_review_job_and_writes_review_script(tmp_
     assert '"--archive-root"' in script_text
     assert '"--state-root"' in script_text
     assert "deepseek-v4-flash" in script_text
+    assert "HERMES_ERSHOV_RUN_SOURCE" in script_text
+    assert "cron" in script_text
     assert str(live_root) in script_text
     assert str(artifact_root) in script_text
     assert str(archive_root) in script_text

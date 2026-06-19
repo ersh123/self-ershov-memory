@@ -240,6 +240,7 @@ _NIGHTLY_REVIEW_SCRIPT_TEMPLATE = textwrap.dedent(
     DEFAULT_MODEL = __MODEL__
     DEFAULT_BASE_URL = __BASE_URL__
     DEFAULT_RECENT = __RECENT__
+    DEFAULT_RUN_SOURCE = __RUN_SOURCE__
 
 
     def _positive_int(name: str, default: int) -> int:
@@ -262,6 +263,7 @@ _NIGHTLY_REVIEW_SCRIPT_TEMPLATE = textwrap.dedent(
         model = os.environ.get("HERMES_ERSHOV_MODEL", os.environ.get("HERMES_MNEMOS_MODEL", os.environ.get("HERMES_NIGHT_MEMORY_MODEL", os.environ.get("HERMES_DREAMING_MODEL", DEFAULT_MODEL))))
         base_url = os.environ.get("HERMES_ERSHOV_BASE_URL", os.environ.get("HERMES_MNEMOS_BASE_URL", os.environ.get("HERMES_NIGHT_MEMORY_BASE_URL", os.environ.get("HERMES_DREAMING_BASE_URL", DEFAULT_BASE_URL))))
         recent = _positive_int("HERMES_ERSHOV_RECENT_SESSIONS", _positive_int("HERMES_MNEMOS_RECENT_SESSIONS", _positive_int("HERMES_NIGHT_MEMORY_RECENT_SESSIONS", _positive_int("HERMES_DREAMING_RECENT_SESSIONS", DEFAULT_RECENT))))
+        run_source = os.environ.get("HERMES_ERSHOV_RUN_SOURCE", DEFAULT_RUN_SOURCE)
 
         cmd = [
             sys.executable,
@@ -287,6 +289,7 @@ _NIGHTLY_REVIEW_SCRIPT_TEMPLATE = textwrap.dedent(
             cmd.extend(["--base-url", base_url])
 
         env = os.environ.copy()
+        env["HERMES_ERSHOV_RUN_SOURCE"] = run_source
         src_path = str(REPO_ROOT / "src")
         env["PYTHONPATH"] = src_path + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
 
@@ -300,6 +303,7 @@ _NIGHTLY_REVIEW_SCRIPT_TEMPLATE = textwrap.dedent(
         print(f"- Provider: `{provider}`")
         print(f"- Model: `{model or 'provider-default'}`")
         print(f"- Recent sessions: `{recent}`")
+        print(f"- Run source: `{run_source}`")
         print("")
 
         result = subprocess.run(cmd, cwd=str(REPO_ROOT), env=env, text=True, capture_output=True, check=False)
@@ -361,6 +365,7 @@ def render_nightly_script(
     artifact_root: Path | None = None,
     archive_root: Path | None = None,
     state_root: Path | None = None,
+    run_source: str = "cron",
 ) -> str:
     resolved_repo_root = repo_root or _repo_root()
     return (
@@ -373,6 +378,7 @@ def render_nightly_script(
         .replace("__MODEL__", repr(model or ""))
         .replace("__BASE_URL__", repr(base_url or ""))
         .replace("__RECENT__", str(recent))
+        .replace("__RUN_SOURCE__", repr(run_source))
     )
 
 

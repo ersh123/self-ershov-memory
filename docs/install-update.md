@@ -41,11 +41,13 @@ service reads that file if it exists and leaves it untouched on reinstall.
 After the first scheduled run has actually fired, verify it with:
 
 ```bash
-ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer
+ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer --require-source systemd
 ```
 
-Manual starts prove the service command works. A passing `soak` after the real
-schedule fires is the stronger evidence for stable operations.
+Manual starts prove the service command works. The stricter `--require-source
+systemd` gate only accepts ledger entries written by the systemd service
+environment, and a passing `soak` after the real schedule fires is the stronger
+evidence for stable operations.
 
 ## Update the installed checkout
 

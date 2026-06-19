@@ -41,7 +41,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] Smoke the root Hermes plugin wrapper: `python scripts/hermes_plugin_smoke.py`
 - [ ] Smoke `ershov install-cron`
 - [ ] Smoke `ershov install-systemd --dry-run`
-- [ ] After a real scheduled run, smoke `ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer`
+- [ ] After a real scheduled run, smoke `ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer --require-source systemd`
 - [ ] Smoke `ershov update --check` and the real `ershov update --no-verify` path on a disposable repo
 
 ## 5. Release gate

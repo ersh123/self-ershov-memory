@@ -34,7 +34,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 - **`reject --reason`** is enforced at the command layer (`commands/review.py:reject_artifact()`), not just the CLI parser. Any caller (CLI, library, plugin) is constrained by the same rule. `ReviewError` is raised on missing, empty, or whitespace-only reasons.
 - **`ershov nightly --no-llm`** now exits as a clean `no-op` when the recent harvest has no eligible `MEMORY:` / `DREAM:` markers. It records the run and writes digests, but does not create an invalid empty artifact.
 - **`HERMES_ERSHOV_SESSION_DB=/path/to/state.db`** forces harvest/nightly to use a specific SessionDB-compatible SQLite file before the live Hermes SessionDB. This makes installed-CLI smoke tests deterministic.
-- **`ershov soak`** is the read-only scheduled-run gate. It checks recent successful `nightly` runs in `runs.jsonl`, fails on recent nightly failures by default, and can require the user systemd timer to be enabled and active.
+- **`ershov soak`** is the read-only scheduled-run gate. It checks recent successful `nightly` runs in `runs.jsonl`, fails on recent nightly failures by default, can require the user systemd timer to be enabled and active, and can require a matching ledger source such as `--require-source systemd`.
 - The root Hermes plugin wrapper now propagates non-zero CLI failures, so `hermes ershov ...` can be used as a real shell gate instead of only a human-readable wrapper.
 
 ## Data model
@@ -62,7 +62,7 @@ A third field, `dry_run_report`, is attached in-memory only during a single appl
 
 ## Known limitations
 
-- Stable release wording waits for at least one real scheduled systemd/cron run followed by a passing `ershov soak --require-timer`. Manual service starts and transient timer smokes are useful evidence, but they are not the same as an overnight scheduled run.
+- Stable release wording waits for at least one real scheduled systemd/cron run followed by a passing `ershov soak --require-timer --require-source systemd`. Manual service starts and transient timer smokes are useful evidence, but they are not the same as an overnight scheduled run.
 - Revert does not re-run validation. It is a restore from backup, not a re-apply. If a reverted proposal is reapplied, validation runs normally as part of the apply path.
 - Drift detection compares the live file's pre-restore content to the recorded backup snapshot, but does not currently track per-write post-apply shas. Adding a per-write post-apply sha is a v0.5.0 candidate.
 - The `--from-since` window-to-count heuristic is conservative (4 sessions per day, capped at 50). If you want a more aggressive count, use `--from-sessions N` directly.

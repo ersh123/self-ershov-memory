@@ -30,9 +30,11 @@ class SoakReport:
     since_hours: int
     min_successful: int
     require_timer: bool
+    required_source: str | None
     allow_failures: bool
     total_nightly_runs: int
     recent_successful_nightly_runs: list[dict[str, Any]]
+    source_matched_successful_nightly_runs: list[dict[str, Any]]
     recent_failed_nightly_runs: list[dict[str, Any]]
     timer: TimerProbe
     reasons: list[str]
@@ -62,6 +64,12 @@ def _parse_timestamp(value: object) -> datetime | None:
 def _record_in_window(record: dict[str, Any], *, cutoff: datetime) -> bool:
     timestamp = _parse_timestamp(record.get("timestamp"))
     return timestamp is not None and timestamp >= cutoff
+
+
+def _normalize_source(value: object) -> str:
+    text = str(value or "manual").strip().lower()
+    normalized = "".join(char if char.isalnum() or char in {"-", "_", "."} else "-" for char in text)
+    return normalized[:64] or "manual"
 
 
 def _run_systemctl(command: Sequence[str]) -> subprocess.CompletedProcess[str]:
@@ -100,6 +108,7 @@ def build_soak_report(
     since_hours: int = 30,
     min_successful: int = 1,
     require_timer: bool = False,
+    required_source: str | None = None,
     timer_name: str = TIMER_NAME,
     allow_failures: bool = False,
     now: datetime | None = None,
@@ -109,6 +118,7 @@ def build_soak_report(
         raise ValueError("since-hours must be greater than 0")
     if min_successful <= 0:
         raise ValueError("min-successful must be greater than 0")
+    normalized_required_source = _normalize_source(required_source) if required_source is not None else None
 
     resolved_state_root = Path(state_root) if state_root is not None else state_module.STATE_ROOT
     ledger_path = resolved_state_root / "runs.jsonl"
@@ -119,13 +129,19 @@ def build_soak_report(
     nightly_runs = [record for record in runs if str(record.get("command", "")).lower() == "nightly"]
     recent_nightly = [record for record in nightly_runs if _record_in_window(record, cutoff=cutoff)]
     recent_successes = [record for record in recent_nightly if bool(record.get("success"))]
+    source_matched_successes = (
+        recent_successes
+        if normalized_required_source is None
+        else [record for record in recent_successes if _normalize_source(record.get("run_source")) == normalized_required_source]
+    )
     recent_failures = [record for record in recent_nightly if not bool(record.get("success"))]
 
     timer = _probe_timer(timer_name=timer_name, runner=runner, checked=require_timer)
     reasons: list[str] = []
-    if len(recent_successes) < min_successful:
+    if len(source_matched_successes) < min_successful:
+        source_suffix = "" if normalized_required_source is None else f" from source '{normalized_required_source}'"
         reasons.append(
-            f"found {len(recent_successes)} successful nightly run(s) in the last {since_hours}h; "
+            f"found {len(source_matched_successes)} successful nightly run(s){source_suffix} in the last {since_hours}h; "
             f"required {min_successful}"
         )
     if recent_failures and not allow_failures:
@@ -143,9 +159,11 @@ def build_soak_report(
         since_hours=since_hours,
         min_successful=min_successful,
         require_timer=require_timer,
+        required_source=normalized_required_source,
         allow_failures=allow_failures,
         total_nightly_runs=len(nightly_runs),
         recent_successful_nightly_runs=recent_successes,
+        source_matched_successful_nightly_runs=source_matched_successes,
         recent_failed_nightly_runs=recent_failures,
         timer=timer,
         reasons=reasons,
@@ -157,7 +175,8 @@ def _format_record(record: dict[str, Any]) -> str:
     status = str(record.get("artifact_status") or "unknown")
     summary = str(record.get("summary") or "").strip()
     artifact_id = str(record.get("artifact_id") or "none")
-    parts = [f"{timestamp}", f"status={status}", f"artifact={artifact_id}"]
+    source = _normalize_source(record.get("run_source"))
+    parts = [f"{timestamp}", f"source={source}", f"status={status}", f"artifact={artifact_id}"]
     if summary:
         parts.append(summary)
     return " | ".join(parts)
@@ -179,7 +198,9 @@ def render_soak_report(report: SoakReport) -> str:
         f"- Ledger: `{report.ledger_path}`",
         f"- Window: `{report.since_hours}h`",
         f"- Required successful nightly runs: `{report.min_successful}`",
+        f"- Required run source: `{report.required_source or 'any'}`",
         f"- Successful nightly runs in window: `{len(report.recent_successful_nightly_runs)}`",
+        f"- Matching successful nightly runs: `{len(report.source_matched_successful_nightly_runs)}`",
         f"- Failed nightly runs in window: `{len(report.recent_failed_nightly_runs)}`",
         f"- Total nightly runs in ledger: `{report.total_nightly_runs}`",
         f"- Timer required: `{str(report.require_timer).lower()}`",
@@ -188,8 +209,9 @@ def render_soak_report(report: SoakReport) -> str:
         "## Latest successful nightly",
         "",
     ]
-    if report.recent_successful_nightly_runs:
-        lines.append(f"- {_format_record(report.recent_successful_nightly_runs[-1])}")
+    latest_successes = report.source_matched_successful_nightly_runs
+    if latest_successes:
+        lines.append(f"- {_format_record(latest_successes[-1])}")
     else:
         lines.append("- none")
 

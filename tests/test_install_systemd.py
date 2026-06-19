@@ -48,11 +48,14 @@ def test_install_systemd_writes_nightly_units_without_secrets(tmp_path: Path, mo
     assert "Type=oneshot" in service_text
     assert f"EnvironmentFile=-{result.env_path}" in service_text
     assert f"EnvironmentFile=-{result.secret_env_path}" in service_text
+    assert "Environment=HERMES_ERSHOV_RUN_SOURCE=systemd" in service_text
     assert f"ExecStart={result.script_path}" in service_text
     assert "OnCalendar=*-*-* 02:30:00" in timer_text
     assert "Persistent=true" in timer_text
     assert "RandomizedDelaySec=10m" in timer_text
     assert '"nightly"' in script_text
+    assert "manual-script" in script_text
+    assert "HERMES_ERSHOV_RUN_SOURCE" in script_text
     assert "--state-root" in script_text
     assert "--archive-root" in script_text
     assert 'HERMES_ERSHOV_RECENT_SESSIONS="9"' in env_text

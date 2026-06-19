@@ -211,7 +211,7 @@ If the `ershov` entrypoint is not installed yet, swap in `python -m hermes_ersho
 - `providers list` introspects the built-in providers (offline-marker, openai-compatible, deepseek, openrouter, ollama) without pinging external services. `--no-llm` is a shorthand for `--provider offline-marker` on `create`, `review`, and `nightly`.
 - OpenAI-compatible, DeepSeek, OpenRouter, and Ollama providers fail closed on malformed output, and each proposal must carry confidence, snippet, provenance, and approved fields before it can be written.
 - `HERMES_ERSHOV_SESSION_DB=/path/to/state.db` forces harvest/nightly to read a specific SessionDB-compatible SQLite file before trying the live Hermes SessionDB. This is useful for deterministic smoke tests.
-- `soak` is a read-only release gate for scheduled nightly memory. It checks the run ledger for recent successful `nightly` runs, fails on recent nightly failures unless `--allow-failures` is set, and can require the user systemd timer to be enabled and active with `--require-timer`.
+- `soak` is a read-only release gate for scheduled nightly memory. It checks the run ledger for recent successful `nightly` runs, fails on recent nightly failures unless `--allow-failures` is set, can require the user systemd timer with `--require-timer`, and can require evidence from a specific runner with `--require-source systemd`.
 - `summarize` prints a concise decision brief for an existing artifact.
 - `approve` and `reject` update artifact metadata only, they do not touch live roots. `reject` requires a non-empty `--reason` at the command layer; any code path (CLI, library, plugin) is constrained by the same rule.
 - `diff` accepts optional `--live-root` and renders unified diffs when the live target root is available.

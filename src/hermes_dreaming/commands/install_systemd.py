@@ -117,6 +117,7 @@ def _render_service(*, script_path: Path, env_path: Path, secret_env_path: Path,
         "Environment=PYTHONUNBUFFERED=1\n"
         f"EnvironmentFile=-{_unit_quote(env_path)}\n"
         f"EnvironmentFile=-{_unit_quote(secret_env_path)}\n"
+        "Environment=HERMES_ERSHOV_RUN_SOURCE=systemd\n"
         f"ExecStart={_unit_quote(script_path)}\n"
         "Nice=5\n"
         "StandardOutput=journal\n"
@@ -213,6 +214,7 @@ def handle(
         artifact_root=resolved_artifact_root,
         archive_root=resolved_archive_root,
         state_root=resolved_state_root,
+        run_source="manual-script",
     )
     env_text = _render_env_file(
         hermes_home=hermes_home,

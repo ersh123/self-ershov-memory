@@ -65,9 +65,9 @@ Three additive fields on `DreamArtifact`:
 
 ## Verification
 
-- `pytest -q` passes (222 tests).
+- `pytest -q` passes (223 tests).
 - `pytest -q tests/test_pbt.py` passes and keeps the property-based path safety, systemd escaping, scoring, and soak commit-prefix invariants visible in the release matrix.
-- Coverage gate passes with `--cov-fail-under=80` (current local total: 83.96%).
+- Coverage gate passes with `--cov-fail-under=80` (current local total: 84.00%).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `git diff --check` clean.

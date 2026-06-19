@@ -25,6 +25,8 @@ ershov status --release-gate --state-root /tmp/hermes-ershov-state
 ershov revert --help
 ```
 
+The status release gate is state-root scoped: with `--state-root`, the default artifact root and ledger/diary paths come from that state root unless `--artifact-root` is passed explicitly.
+
 ## CI gates
 
 GitHub Actions runs the same release-shaped matrix:

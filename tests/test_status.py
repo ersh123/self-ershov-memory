@@ -180,3 +180,52 @@ def test_status_cli_release_gate_uses_strict_systemd_defaults(
     assert "Window: `96h`" in output
     assert "Required successful scheduled runs: `3`" in output
     assert "next=Sat 2026-06-20 03:00:49 +07" in output
+
+
+def test_status_cli_state_root_drives_default_artifact_root_and_ledger(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    state_root = tmp_path / "state"
+    artifact_root = state_root / "artifacts"
+    artifact_root.mkdir(parents=True)
+    _write_ledger(
+        state_root,
+        [
+            {
+                "command": "nightly",
+                "success": True,
+                "timestamp": "2026-06-19T10:00:00Z",
+                "artifact_status": "no-op",
+                "run_source": "systemd",
+                "git_commit": "abc1234",
+                "git_dirty": False,
+                "summary": "nightly no-op",
+            }
+        ],
+    )
+
+    def fake_build_soak_report(**kwargs):  # type: ignore[no-untyped-def]
+        return build_soak_report(
+            state_root=kwargs["state_root"],
+            since_hours=kwargs["since_hours"],
+            min_successful=kwargs["min_successful"],
+            now=NOW,
+            require_timer=True,
+            required_source="systemd",
+            required_commit="abc1234",
+            require_clean=True,
+            runner=_timer_runner,
+        )
+
+    monkeypatch.setattr(cli_module, "_current_git_commit", lambda: "abc1234")
+    monkeypatch.setattr(cli_module, "_current_git_dirty", lambda: False)
+    monkeypatch.setattr(cli_module, "build_soak_report", fake_build_soak_report)
+
+    exit_code = main(["status", "--release-gate", "--state-root", str(state_root)])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert f"Artifact root: {artifact_root}" in output
+    assert "Run ledger: 1 run(s), 1 successful" in output
+    assert "Last run: 2026-06-19T10:00:00Z" in output
+    assert "Stable release gate:" in output

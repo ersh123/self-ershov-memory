@@ -314,9 +314,14 @@ def build_parser() -> argparse.ArgumentParser:
     digest.add_argument("--limit", type=int, default=20, help="Maximum inbox rows when --inbox is used")
 
     status = sub.add_parser("status", help="List known artifacts")
-    status.add_argument("--artifact-root", type=Path, default=Path.cwd() / ".ershov" / "artifacts", help="Where artifacts are stored")
+    status.add_argument(
+        "--artifact-root",
+        type=Path,
+        default=None,
+        help="Where artifacts are stored (default: STATE_ROOT/artifacts with --state-root, otherwise ./.ershov/artifacts)",
+    )
     status.add_argument("--release-gate", action="store_true", help="Include the strict systemd stable-release gate status")
-    status.add_argument("--state-root", type=Path, default=None, help="State root containing runs.jsonl for --release-gate")
+    status.add_argument("--state-root", type=Path, default=None, help="State root containing state.json, runs.jsonl, and ERSHOV.md")
     status.add_argument(
         "--since-hours",
         type=int,
@@ -1021,7 +1026,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "status":
-        snapshot = build_status_snapshot(artifact_root=args.artifact_root)
+        state_root = Path(args.state_root) if args.state_root is not None else None
+        artifact_root = args.artifact_root
+        if artifact_root is None:
+            artifact_root = state_root / "artifacts" if state_root is not None else Path.cwd() / ".ershov" / "artifacts"
+        snapshot = build_status_snapshot(
+            artifact_root=artifact_root,
+            state_path=state_root / "state.json" if state_root is not None else None,
+            ledger_path=state_root / "runs.jsonl" if state_root is not None else None,
+            diary_path=state_root / "ERSHOV.md" if state_root is not None else None,
+        )
         release_gate = None
         current_commit = None
         current_dirty = None
@@ -1031,7 +1045,7 @@ def main(argv: list[str] | None = None) -> int:
             since_hours = args.since_hours if args.since_hours is not None else STABLE_GATE_SINCE_HOURS
             min_successful = args.min_successful if args.min_successful is not None else STABLE_GATE_MIN_SUCCESSFUL
             release_gate = build_soak_report(
-                state_root=args.state_root,
+                state_root=state_root,
                 since_hours=since_hours,
                 min_successful=min_successful,
                 require_timer=True,

@@ -18,6 +18,8 @@ def test_ci_workflow_shows_release_shaped_test_matrix() -> None:
         "uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0",
         "uv sync --locked --extra dev",
         "zizmor .github/workflows",
+        "pip-audit . --strict --progress-spinner off",
+        "pip-audit --local --skip-editable --progress-spinner off",
         "python -m compileall -q __init__.py src scripts",
         "pytest -q",
         "--cov=hermes_dreaming",
@@ -163,6 +165,8 @@ def test_publish_workflow_uses_release_only_trusted_publishing() -> None:
         "permissions:\n  contents: read",
         "uv sync --locked --extra dev --python \"3.12\"",
         "uv run --locked --extra dev zizmor .github/workflows",
+        "uv run --locked --extra dev pip-audit . --strict --progress-spinner off",
+        "uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off",
         "uv run --locked --extra dev python -m compileall -q __init__.py src scripts fuzzers",
         "uv run --locked --extra dev pytest -q --cov=hermes_dreaming",
         "uv run --locked --extra dev pytest -q tests/test_pbt.py tests/test_fuzz_harness.py",
@@ -219,11 +223,12 @@ def test_pyproject_exposes_documented_console_aliases() -> None:
         assert scripts[alias] == "hermes_dreaming.cli:main"
 
 
-def test_pyproject_dev_extra_includes_package_and_workflow_security_checkers() -> None:
+def test_pyproject_dev_extra_includes_package_workflow_and_dependency_security_checkers() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     dev_deps = pyproject["project"]["optional-dependencies"]["dev"]
 
     assert any(dep.startswith("twine>=") for dep in dev_deps)
+    assert any(dep.startswith("pip-audit>=") for dep in dev_deps)
     assert any(dep.startswith("zizmor>=") for dep in dev_deps)
 
 

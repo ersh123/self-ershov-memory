@@ -41,6 +41,8 @@ jobs:
         run: |
           git diff --check
           uv run --locked --extra dev zizmor .github/workflows
+          uv run --locked --extra dev pip-audit . --strict --progress-spinner off
+          uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off
           uv run --locked --extra dev python -m compileall -q __init__.py src scripts fuzzers
           uv run --locked --extra dev pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80
           uv run --locked --extra dev pytest -q tests/test_pbt.py tests/test_fuzz_harness.py

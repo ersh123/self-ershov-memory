@@ -29,12 +29,14 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 
 ## 4. Verification
 
+- [ ] `uv sync --locked --extra dev`
 - [ ] `pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80`
 - [ ] `pytest -q tests/test_pbt.py`
 - [ ] `python -m compileall -q __init__.py src scripts`
 - [ ] `git diff --check`
 - [ ] `zizmor .github/workflows`
-- [ ] `uv sync --locked --extra dev`
+- [ ] `pip-audit . --strict --progress-spinner off`
+- [ ] `pip-audit --local --skip-editable --progress-spinner off`
 - [ ] `python -m build`
 - [ ] `twine check --strict dist/*.whl dist/*.tar.gz`
 - [ ] `python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json`

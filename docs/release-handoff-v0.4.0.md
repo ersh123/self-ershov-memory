@@ -45,6 +45,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 - coverage gate `--cov-fail-under=80` (current local total: 82.58%)
 - `git diff --check` (clean)
 - `zizmor .github/workflows` (GitHub Actions security lint passes; Release/Publish runtime artifact caches are disabled)
+- `pip-audit . --strict --progress-spinner off` and `pip-audit --local --skip-editable --progress-spinner off` (known Python dependency vulnerability scans pass)
 - `python3 -m build` (succeeds)
 - `twine check --strict dist/*.whl dist/*.tar.gz` (package metadata and README rendering pass)
 - `python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json` (succeeds)

@@ -54,6 +54,11 @@ jobs:
       - name: Lint GitHub Actions security
         run: uv run --locked --extra dev zizmor .github/workflows
 
+      - name: Audit Python dependency vulnerabilities
+        run: |
+          uv run --locked --extra dev pip-audit . --strict --progress-spinner off
+          uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off
+
       - name: Compile package
         run: uv run --locked --extra dev python -m compileall -q __init__.py src scripts
 

@@ -27,6 +27,7 @@ The matrix follows the current public docs for:
 - in-toto Statement subject/digest model: https://github.com/in-toto/attestation/blob/v1.0/spec/v1.0/statement.md
 - SPDX package information: https://spdx.github.io/spdx-spec/v2.3/package-information/
 - OpenSSF Scorecard Packaging: https://github.com/ossf/scorecard/blob/main/docs/checks.md#packaging
+- pip-audit Python dependency vulnerability auditing: https://github.com/pypa/pip-audit
 
 ## Local gates
 
@@ -39,6 +40,8 @@ uv run --locked --extra dev python -m pytest -q tests/test_pbt.py
 uv run --locked --extra dev python -m compileall -q __init__.py src scripts
 git diff --check
 uv run --locked --extra dev zizmor .github/workflows
+uv run --locked --extra dev pip-audit . --strict --progress-spinner off
+uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off
 uv run --locked --extra dev python -m build
 uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz
 uv run --locked --extra dev python scripts/hermes_plugin_smoke.py
@@ -74,6 +77,7 @@ GitHub Actions runs the same release-shaped matrix:
 - locked dev environment sync with `uv sync --locked --extra dev`
 - whitespace check with `git diff --check`
 - Zizmor GitHub Actions security lint
+- pip-audit known-vulnerability scans for declared project dependencies and the locked local Python environment
 - bytecode compile with `compileall`
 - full pytest suite
 - coverage report for `hermes_dreaming`, `hermes_ershov`, and `hermes_mnemos`, with an 80% minimum gate

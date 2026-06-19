@@ -104,7 +104,7 @@ The update command is conservative on purpose:
 - it refuses a dirty working tree
 - it refuses local-ahead or diverged history
 - it runs pytest after a real update unless you disable verification
-- it retries one timed-out `git fetch`; raise `--git-timeout-seconds` when GitHub or the VPS network is slow
+- it retries one transient network/timeout failure during `git fetch` or `git pull --ff-only`; raise `--git-timeout-seconds` when GitHub or the VPS network is slow
 
 You can override the remote or branch if your install tracks something else:
 

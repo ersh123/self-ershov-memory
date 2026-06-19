@@ -36,9 +36,9 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 ## Verification gates
 
-- `python -m pytest -q` (242 tests pass)
+- `python -m pytest -q` (244 tests pass)
 - `python -m pytest -q tests/test_pbt.py` (property-based safety invariants pass)
-- coverage gate `--cov-fail-under=80` (current local total: 84.41%)
+- coverage gate `--cov-fail-under=80` (current local total: 84.42%)
 - `git diff --check` (clean)
 - `python3 -m build` (succeeds)
 - Temp-only Ershov smoke with `HERMES_ERSHOV_STATE_ROOT`:
@@ -65,7 +65,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - [x] `git status -sb` clean (except intentional v0.4.0 changes)
 - [x] `git diff --check` clean
-- [x] `pytest -q` passes (242 tests)
+- [x] `pytest -q` passes (244 tests)
 - [x] `pytest -q tests/test_pbt.py` passes
 - [x] `python -m build` succeeds
 - [x] Each new + modified command smoke-tested on temp fixtures
@@ -76,7 +76,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 
 - **Revert command behavior**: new successful applies record per-write post-apply shas in `backup_records`, so drift detection can distinguish a clean applied file from an operator edit after apply. Legacy artifacts still fall back to backup-vs-live drift comparison, but those events are labeled `legacy-degraded` in audit output and `REVERT.md`.
 - **Provider doctor behavior**: `providers doctor --strict` is a local configuration gate only. With `--from-systemd`, it checks the default Hermes Ershov systemd `EnvironmentFile` paths the timer will see; repeatable `--env-file` remains available for explicit layouts; `--fix-plan` prints secret-safe remediation commands and `<secret>` placeholders without changing files. These paths avoid prompt/model calls, never print secret values, and fail closed when explicit `--provider` disagrees with `HERMES_ERSHOV_PROVIDER`. It is not an end-to-end generation test.
-- **Update command behavior**: `ershov update` still refuses dirty/diverged branches and rolls back failed verification, but now retries one timed-out `git fetch`; `--git-timeout-seconds` can be raised for slow VPS/GitHub links.
+- **Update command behavior**: `ershov update` still refuses dirty/diverged branches and rolls back failed verification, but now retries one transient network/timeout failure during `git fetch` or `git pull --ff-only`; `--git-timeout-seconds` can be raised for slow VPS/GitHub links.
 - **Apply filter behavior**: filtered-out proposals stay `approved` so a later apply with a different filter can still land them. This is the right behavior for the use case, but it's a state-machine subtlety. Read `apply_artifact` to confirm.
 - **Re-run of reject without reason**: the CLI now exits 1 instead of erroring in argparse. If you want a different code, it's a one-liner in `cli.py`.
 - **`--from-since` count heuristic**: 4 sessions per day, capped at 50. If you want a different default, change the constant in `_resolve_creation_sources`.

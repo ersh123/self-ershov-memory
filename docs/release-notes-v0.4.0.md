@@ -46,7 +46,7 @@ v0.4.0 makes Ershov much safer to trial in real operator loops (revert, dry-run,
 - **Provider quote grounding** now rejects schema-valid model proposals whose `source_quote` or `snippet` does not match a cited source line, closing the easy "valid JSON, invented evidence" path.
 - **`ershov status --release-gate`** now renders the strict systemd stable gate inline: current commit, dirty state, last nightly run, last successful nightly, last failed nightly, timer next elapse, timer-visible provider readiness, matching scheduled runs, recent failures, and exact blockers.
 - **`ershov update` verification** uses an isolated uv editable test environment with pytest and Hypothesis when the checkout has `pyproject.toml`, so installed plugin updates do not depend on the runtime Python already having dev dependencies.
-- **`ershov update` fetch resilience** retries one timed-out `git fetch` and exposes `--git-timeout-seconds` for slow VPS/GitHub links without weakening dirty-tree, fast-forward, or verification checks.
+- **`ershov update` fetch/pull resilience** retries one transient network/timeout failure during `git fetch` or `git pull --ff-only` and exposes `--git-timeout-seconds` for slow VPS/GitHub links without weakening dirty-tree, fast-forward, or verification checks.
 - The root Hermes plugin wrapper now propagates non-zero CLI failures, so `hermes ershov ...` can be used as a real shell gate instead of only a human-readable wrapper.
 
 ## Data model
@@ -67,9 +67,9 @@ Three additive fields on `DreamArtifact`:
 
 ## Verification
 
-- `pytest -q` passes (242 tests).
+- `pytest -q` passes (244 tests).
 - `pytest -q tests/test_pbt.py` passes and keeps the property-based path safety, systemd escaping, scoring, and soak commit-prefix invariants visible in the release matrix.
-- Coverage gate passes with `--cov-fail-under=80` (current local total: 84.41%).
+- Coverage gate passes with `--cov-fail-under=80` (current local total: 84.42%).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `git diff --check` clean.

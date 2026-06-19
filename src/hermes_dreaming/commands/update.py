@@ -12,6 +12,16 @@ DEFAULT_REMOTE = "origin"
 DEFAULT_BRANCH = "main"
 DEFAULT_GIT_TIMEOUT_SECONDS = 120
 DEFAULT_FETCH_RETRIES = 1
+TRANSIENT_GIT_ERROR_MARKERS = (
+    "timed out after",
+    "connection timed out",
+    "operation timed out",
+    "failed to connect",
+    "couldn't connect",
+    "could not resolve host",
+    "the network connection was lost",
+    "gnutls recv error",
+)
 
 
 @dataclass(slots=True)
@@ -64,6 +74,32 @@ def _git_output(args: list[str], *, cwd: Path, timeout_seconds: int = DEFAULT_GI
     return _run_git(args, cwd=cwd, timeout_seconds=timeout_seconds).stdout.strip()
 
 
+def _is_transient_git_error(error: RuntimeError) -> bool:
+    text = str(error).lower()
+    return any(marker in text for marker in TRANSIENT_GIT_ERROR_MARKERS)
+
+
+def _run_git_retrying_transient(
+    args: list[str],
+    *,
+    cwd: Path,
+    timeout_seconds: int = DEFAULT_GIT_TIMEOUT_SECONDS,
+    retries: int = DEFAULT_FETCH_RETRIES,
+) -> subprocess.CompletedProcess[str]:
+    attempts = max(0, retries) + 1
+    last_error: RuntimeError | None = None
+    for attempt in range(attempts):
+        try:
+            return _run_git(args, cwd=cwd, timeout_seconds=timeout_seconds)
+        except RuntimeError as exc:
+            last_error = exc
+            if not _is_transient_git_error(exc) or attempt == attempts - 1:
+                raise
+    if last_error is not None:  # pragma: no cover - loop either returns or raises.
+        raise last_error
+    raise RuntimeError("git retry loop exited without result")  # pragma: no cover
+
+
 def _fetch_remote(
     *,
     cwd: Path,
@@ -71,18 +107,12 @@ def _fetch_remote(
     timeout_seconds: int = DEFAULT_GIT_TIMEOUT_SECONDS,
     retries: int = DEFAULT_FETCH_RETRIES,
 ) -> None:
-    attempts = max(0, retries) + 1
-    last_error: RuntimeError | None = None
-    for attempt in range(attempts):
-        try:
-            _run_git(["fetch", "--prune", remote], cwd=cwd, timeout_seconds=timeout_seconds)
-            return
-        except RuntimeError as exc:
-            last_error = exc
-            if "timed out after" not in str(exc) or attempt == attempts - 1:
-                raise
-    if last_error is not None:  # pragma: no cover - loop either returns or raises.
-        raise last_error
+    _run_git_retrying_transient(
+        ["fetch", "--prune", remote],
+        cwd=cwd,
+        timeout_seconds=timeout_seconds,
+        retries=retries,
+    )
 
 
 def _verification_command(repo_root: Path, *, cache_dir: Path) -> list[str]:
@@ -300,7 +330,11 @@ def handle(
 
     pre_update_rev = current_rev
     try:
-        _run_git(["pull", "--ff-only", remote, branch], cwd=repo_root, timeout_seconds=git_timeout_seconds)
+        _run_git_retrying_transient(
+            ["pull", "--ff-only", remote, branch],
+            cwd=repo_root,
+            timeout_seconds=git_timeout_seconds,
+        )
         updated_rev = _git_output(["rev-parse", "HEAD"], cwd=repo_root, timeout_seconds=git_timeout_seconds)
         upstream_rev = _git_output(["rev-parse", upstream_ref], cwd=repo_root, timeout_seconds=git_timeout_seconds)
         refreshed_counts = _git_output(

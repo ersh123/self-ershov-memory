@@ -15,7 +15,7 @@
 - Hardened legacy revert evidence: artifacts without post-apply shas now label backup-vs-live drift inference as `legacy-degraded` in the audit trail and `REVERT.md`.
 - Hardened the root Hermes plugin wrapper so `hermes ershov ...` propagates non-zero CLI failures to the shell instead of returning success after printing an error.
 - Hardened `ershov update` verification so installed checkouts use an isolated uv editable test environment with pytest and Hypothesis instead of failing when the runtime environment lacks dev dependencies.
-- Hardened `ershov update` against transient network stalls: `git fetch` retries one timeout, and `--git-timeout-seconds` lets operators raise the per-git-command timeout without disabling verification.
+- Hardened `ershov update` against transient network stalls: `git fetch` and `git pull --ff-only` retry one transient network/timeout failure, and `--git-timeout-seconds` lets operators raise the per-git-command timeout without disabling verification.
 - Hardened `nightly --no-llm` so harvests without eligible `MEMORY:` / `DREAM:` markers exit as clean `no-op` runs instead of invalid empty artifacts.
 - Added `HERMES_ERSHOV_SESSION_DB` for deterministic harvest/nightly smoke tests against a specific SessionDB-compatible SQLite file.
 - Tightened the `reject` reason enforcement: the non-empty reason check is now in `commands/review.py:reject_artifact()`, so any caller (CLI, library, plugin) is constrained by the same rule.

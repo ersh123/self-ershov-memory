@@ -236,7 +236,7 @@ If the `ershov` entrypoint is not installed yet, swap in `python -m hermes_ersho
 - `approve` and `reject` update artifact metadata only, they do not touch live roots. `reject` requires a non-empty `--reason` at the command layer; any code path (CLI, library, plugin) is constrained by the same rule.
 - `diff` accepts optional `--live-root` and renders unified diffs when the live target root is available.
 - `apply` applies already approved proposals. `--approve` still works as a compatibility shortcut for recording approvals before apply.
-- `update` supports `--remote`, `--branch`, `--check`, `--no-verify`, and `--git-timeout-seconds`. The fetch step retries one timeout before failing, while dirty trees, local-ahead/diverged branches, and failed verification still block the update.
+- `update` supports `--remote`, `--branch`, `--check`, `--no-verify`, and `--git-timeout-seconds`. The fetch and fast-forward pull steps retry one transient network/timeout failure before failing, while dirty trees, local-ahead/diverged branches, and failed verification still block the update.
 
 ## Memory markers
 

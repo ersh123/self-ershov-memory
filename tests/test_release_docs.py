@@ -152,7 +152,8 @@ def test_release_docs_use_current_test_count() -> None:
         assert "235 tests" not in text, path
         assert "238 tests" not in text, path
         assert "241 tests" not in text, path
-        assert "242 tests" in text, path
+        assert "242 tests" not in text, path
+        assert "244 tests" in text, path
 
 
 def test_release_docs_document_stronger_public_stable_promotion_gate() -> None:
@@ -230,7 +231,7 @@ def test_release_docs_document_provider_doctor_safety() -> None:
         encoding="utf-8"
     )
     assert "--git-timeout-seconds" in (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    assert "timed-out `git fetch`" in (REPO_ROOT / "docs" / "release-notes-v0.4.0.md").read_text(
+    assert "`git fetch` or `git pull --ff-only`" in (REPO_ROOT / "docs" / "release-notes-v0.4.0.md").read_text(
         encoding="utf-8"
     )
     assert "<secret>" in (REPO_ROOT / "docs" / "release-handoff-v0.4.0.md").read_text(encoding="utf-8")

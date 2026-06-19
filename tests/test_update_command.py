@@ -141,6 +141,54 @@ def test_update_fetch_does_not_retry_non_timeout_errors(monkeypatch, tmp_path: P
     assert calls == [["fetch", "--prune", "origin"]]
 
 
+def test_update_pull_retries_transient_network_error(monkeypatch, tmp_path: Path) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run_git(args, *, cwd, timeout_seconds=120):  # type: ignore[no-untyped-def]
+        calls.append(list(args))
+        if len(calls) == 1:
+            raise RuntimeError(
+                "fatal: unable to access 'https://github.com/example/repo.git/': "
+                "Failed to connect to github.com port 443"
+            )
+        return subprocess.CompletedProcess(["git", *args], 0, "", "")
+
+    monkeypatch.setattr(update_module, "_run_git", fake_run_git)
+
+    result = update_module._run_git_retrying_transient(
+        ["pull", "--ff-only", "origin", "main"],
+        cwd=tmp_path,
+        timeout_seconds=120,
+        retries=1,
+    )
+
+    assert result.returncode == 0
+    assert calls == [
+        ["pull", "--ff-only", "origin", "main"],
+        ["pull", "--ff-only", "origin", "main"],
+    ]
+
+
+def test_update_pull_does_not_retry_non_transient_errors(monkeypatch, tmp_path: Path) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run_git(args, *, cwd, timeout_seconds=120):  # type: ignore[no-untyped-def]
+        calls.append(list(args))
+        raise RuntimeError("fatal: Not possible to fast-forward, aborting.")
+
+    monkeypatch.setattr(update_module, "_run_git", fake_run_git)
+
+    with pytest.raises(RuntimeError, match="fast-forward"):
+        update_module._run_git_retrying_transient(
+            ["pull", "--ff-only", "origin", "main"],
+            cwd=tmp_path,
+            timeout_seconds=120,
+            retries=1,
+        )
+
+    assert calls == [["pull", "--ff-only", "origin", "main"]]
+
+
 def test_update_rejects_non_positive_git_timeout(tmp_path: Path) -> None:
     repo, _remote = _init_repo(tmp_path)
 

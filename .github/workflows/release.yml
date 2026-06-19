@@ -51,6 +51,19 @@ jobs:
           /tmp/ershov-release-smoke/bin/python -m hermes_ershov --help
           /tmp/ershov-release-smoke/bin/python -m hermes_mnemos --help
 
+      - name: Smoke source distribution
+        run: |
+          python -m venv /tmp/ershov-release-sdist-smoke
+          /tmp/ershov-release-sdist-smoke/bin/python -m pip install --upgrade pip
+          /tmp/ershov-release-sdist-smoke/bin/python -m pip install dist/*.tar.gz
+          /tmp/ershov-release-sdist-smoke/bin/ershov --help
+          /tmp/ershov-release-sdist-smoke/bin/mnemos --help
+          /tmp/ershov-release-sdist-smoke/bin/nightmem --help
+          /tmp/ershov-release-sdist-smoke/bin/dreaming --help
+          /tmp/ershov-release-sdist-smoke/bin/python -m hermes_dreaming --help
+          /tmp/ershov-release-sdist-smoke/bin/python -m hermes_ershov --help
+          /tmp/ershov-release-sdist-smoke/bin/python -m hermes_mnemos --help
+
       - name: Upload release assets
         if: github.event_name == 'release'
         env:

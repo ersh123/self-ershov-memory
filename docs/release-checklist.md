@@ -30,7 +30,8 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 
 - [ ] `pytest -q`
 - [ ] `python -m pip install build` if needed
-- [ ] `python -m build --wheel`
+- [ ] `python -m build`
+- [ ] Smoke wheel and source distribution installs against all public CLI aliases
 - [ ] Smoke the CLI with `ershov status`
 - [ ] Smoke `ershov create`, `review`, `diff`, `validate`, `apply`, and `discard` on temp fixtures
 - [ ] Smoke `ershov compact` on terminal artifacts

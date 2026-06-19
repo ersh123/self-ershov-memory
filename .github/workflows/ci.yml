@@ -65,3 +65,16 @@ jobs:
           /tmp/ershov-wheel-smoke/bin/python -m hermes_dreaming --help
           /tmp/ershov-wheel-smoke/bin/python -m hermes_ershov --help
           /tmp/ershov-wheel-smoke/bin/python -m hermes_mnemos --help
+
+      - name: Smoke source distribution
+        run: |
+          python -m venv /tmp/ershov-sdist-smoke
+          /tmp/ershov-sdist-smoke/bin/python -m pip install --upgrade pip
+          /tmp/ershov-sdist-smoke/bin/python -m pip install dist/*.tar.gz
+          /tmp/ershov-sdist-smoke/bin/ershov --help
+          /tmp/ershov-sdist-smoke/bin/mnemos --help
+          /tmp/ershov-sdist-smoke/bin/nightmem --help
+          /tmp/ershov-sdist-smoke/bin/dreaming --help
+          /tmp/ershov-sdist-smoke/bin/python -m hermes_dreaming --help
+          /tmp/ershov-sdist-smoke/bin/python -m hermes_ershov --help
+          /tmp/ershov-sdist-smoke/bin/python -m hermes_mnemos --help

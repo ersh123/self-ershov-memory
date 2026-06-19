@@ -4,17 +4,17 @@ Hermes Ershov is staged self-improvement. It can make durable changes, but only 
 
 ## It can mutate
 
-- live memory files under the live root, such as `memory.md`
-- live user files under the live root, such as `user.md`
-- skill files under the live root, such as `skills/review.md`
-- JSONL fact files under the live root
-- any other safe relative path that lives inside the live root and came from an approved proposal
+- live memory entries in `memory.md`
+- live user entries in `user.md`
+- staged skill files matching `skills/<name>.md`, such as `skills/review.md`
+- staged JSONL fact records in `facts.jsonl`
 
-In the current offline fixture, the demo shows four target kinds:
+It does not write arbitrary "safe-looking" relative paths. Every staged proposal must match the target-kind allowlist before apply can write it.
+
+In the current offline fixture, the demo shows three target kinds:
 
 - `fact`
 - `memory`
-- `skill`
 - `user`
 
 ## It cannot mutate
@@ -24,6 +24,7 @@ In the current offline fixture, the demo shows four target kinds:
 - the source bundle itself
 - paths outside the live root
 - absolute paths or path traversal targets like `..`
+- safe relative paths that are not in the target-kind allowlist
 - hidden side channels or a second source of truth
 
 ## Guard rails

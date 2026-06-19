@@ -56,7 +56,7 @@ A third field, `dry_run_report`, is attached in-memory only during a single appl
 
 ## Verification
 
-- `pytest -q` passes (177 tests).
+- `pytest -q` passes (178 tests).
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `git diff --check` clean.

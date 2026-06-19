@@ -58,6 +58,7 @@ The plugin also bundles a Hermes skill named `ershov`. Load that bare name insid
 - [docs/personas.md](docs/personas.md) shows how different operators use the same loop.
 - [docs/safety.md](docs/safety.md) spells out what Ershov can and cannot mutate.
 - [docs/testing.md](docs/testing.md) shows the release test matrix behind the GitHub checks.
+- [docs/release-integrity.md](docs/release-integrity.md) shows how to verify release assets, checksums, SBOM, and GitHub attestations.
 
 ## Current status
 

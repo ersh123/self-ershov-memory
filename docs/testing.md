@@ -21,6 +21,8 @@ The matrix follows the current public docs for:
 - PyPI Trusted Publishing: https://docs.pypi.org/trusted-publishers/using-a-publisher/
 - GitHub artifact attestations: https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
 - GitHub release integrity verification: https://docs.github.com/code-security/supply-chain-security/understanding-your-software-supply-chain/verifying-the-integrity-of-a-release
+- GitHub CLI release asset verification: https://cli.github.com/manual/gh_release_verify-asset
+- GitHub CLI artifact attestation verification: https://cli.github.com/manual/gh_attestation_verify
 - SPDX package information: https://spdx.github.io/spdx-spec/v2.3/package-information/
 - OpenSSF Scorecard Packaging: https://github.com/ossf/scorecard/blob/main/docs/checks.md#packaging
 
@@ -85,6 +87,7 @@ GitHub Actions runs the same release-shaped matrix:
 - SPDX release SBOM generation into `dist/hermes-ershov-sbom.spdx.json`
 - `SHA256SUMS` generation for the wheel, source distribution, and SPDX SBOM release assets
 - release artifact verification for wheel metadata, source distribution metadata, SBOM package coverage, purl refs, locked SHA256 checksums, and root dependency relationships
+- public release integrity runbook in `docs/release-integrity.md`, including `sha256sum -c`, `gh release verify-asset`, `gh attestation verify`, SBOM, and stable-soak boundaries
 - GitHub Release asset attestations on release-event uploads
 - PyPI Trusted Publishing through OIDC on GitHub `release` events only, with GitHub artifact attestations for the built distributions
 - checkout-token hardening through `persist-credentials: false` on repository checkout steps

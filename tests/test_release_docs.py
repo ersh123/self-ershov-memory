@@ -169,7 +169,8 @@ def test_release_docs_use_current_test_count() -> None:
         assert "262 tests" not in text, path
         assert "263 tests" not in text, path
         assert "264 tests" not in text, path
-        assert "265 tests" in text, path
+        assert "265 tests" not in text, path
+        assert "266 tests" in text, path
 
 
 def test_release_docs_document_stronger_public_stable_promotion_gate() -> None:
@@ -303,6 +304,11 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
         "GitHub Release asset attestations",
         "SPDX release SBOM generation",
         "SHA256SUMS",
+        "public release integrity runbook",
+        "docs/release-integrity.md",
+        "sha256sum -c",
+        "gh release verify-asset",
+        "gh attestation verify",
         "release artifact verification",
         "release-event-only PyPI publishing",
         "SARIF uploaded to code scanning",
@@ -321,6 +327,8 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
         "https://docs.pypi.org/trusted-publishers/using-a-publisher/",
         "https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds",
         "https://docs.github.com/code-security/supply-chain-security/understanding-your-software-supply-chain/verifying-the-integrity-of-a-release",
+        "https://cli.github.com/manual/gh_release_verify-asset",
+        "https://cli.github.com/manual/gh_attestation_verify",
         "https://spdx.github.io/spdx-spec/v2.3/package-information/",
         "https://github.com/ossf/scorecard/blob/main/docs/checks.md#packaging",
         "--min-successful 3 --strict-systemd",
@@ -332,3 +340,41 @@ def test_testing_matrix_is_linked_and_mentions_diverse_release_gates() -> None:
     ):
         assert phrase in testing
     assert "docs/testing.md" in checklist
+
+
+def test_release_integrity_runbook_is_public_and_honest() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    checklist = (REPO_ROOT / "docs" / "release-checklist.md").read_text(encoding="utf-8")
+    notes = (REPO_ROOT / "docs" / "release-notes-v0.4.0.md").read_text(encoding="utf-8")
+    handoff = (REPO_ROOT / "docs" / "release-handoff-v0.4.0.md").read_text(encoding="utf-8")
+    integrity = (REPO_ROOT / "docs" / "release-integrity.md").read_text(encoding="utf-8")
+
+    assert "docs/release-integrity.md" in readme
+    assert "docs/release-integrity.md" in checklist
+    assert "docs/release-integrity.md" in notes
+    assert "docs/release-integrity.md" in handoff
+
+    for phrase in (
+        "It is not release approval.",
+        "wheel: `hermes_ershov-<version>-py3-none-any.whl`",
+        "source distribution: `hermes_ershov-<version>.tar.gz`",
+        "SPDX SBOM: `hermes-ershov-sbom.spdx.json`",
+        "checksum manifest: `SHA256SUMS`",
+        "scripts/generate_release_sbom.py",
+        "scripts/generate_release_checksums.py",
+        "scripts/verify_release_artifacts.py",
+        "(cd dist && sha256sum -c SHA256SUMS)",
+        '(cd "$OUT" && sha256sum -c SHA256SUMS)',
+        "gh release download",
+        "gh release verify-asset",
+        "gh attestation verify",
+        "--repo ersh123/hermes-ershov",
+        "does not prove the product is stable",
+        "--since-hours 96 --min-successful 3 --strict-systemd --require-provider deepseek",
+        "Manual runs, local artifact verification, and green CI are release-candidate evidence only",
+        "https://docs.github.com/code-security/supply-chain-security/understanding-your-software-supply-chain/verifying-the-integrity-of-a-release",
+        "https://cli.github.com/manual/gh_release_verify-asset",
+        "https://cli.github.com/manual/gh_attestation_verify",
+        "https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds",
+    ):
+        assert phrase in integrity

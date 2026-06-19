@@ -175,6 +175,39 @@ def test_soak_report_can_require_successful_git_commit(tmp_path: Path) -> None:
     assert "commit=new2222" in output
 
 
+def test_soak_report_rejects_too_short_required_git_commit(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=1, run_source="systemd", git_commit="abc1234")])
+
+    report = build_soak_report(
+        state_root=state_root,
+        now=NOW,
+        required_source="systemd",
+        required_commit="abc",
+    )
+
+    assert report.passed is False
+    assert report.required_commit == "abc"
+    assert len(report.commit_matched_successful_nightly_runs) == 0
+    assert "commit 'abc'" in report.reasons[0]
+
+
+def test_soak_report_rejects_too_short_ledger_git_commit_prefix(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=1, run_source="systemd", git_commit="abc")])
+
+    report = build_soak_report(
+        state_root=state_root,
+        now=NOW,
+        required_source="systemd",
+        required_commit="abc1234",
+    )
+
+    assert report.passed is False
+    assert len(report.commit_matched_successful_nightly_runs) == 0
+    assert "commit 'abc1234'" in report.reasons[0]
+
+
 def test_soak_report_distinguishes_gate_matches_from_clean_matches(tmp_path: Path) -> None:
     state_root = tmp_path / "state"
     _write_ledger(

@@ -11,6 +11,7 @@ from .. import state as state_module
 from .install_systemd import TIMER_NAME
 
 Runner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]
+MIN_COMMIT_MATCH_CHARS = 7
 
 
 @dataclass(slots=True)
@@ -90,6 +91,8 @@ def _commit_matches(record: dict[str, Any], *, required_commit: str | None) -> b
         return True
     commit = _normalize_commit(record.get("git_commit"))
     if commit is None:
+        return False
+    if len(commit) < MIN_COMMIT_MATCH_CHARS or len(required_commit) < MIN_COMMIT_MATCH_CHARS:
         return False
     return commit == required_commit or commit.startswith(required_commit) or required_commit.startswith(commit)
 

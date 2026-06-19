@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from hermes_dreaming.cli import main
+from hermes_dreaming.commands.install_systemd import SERVICE_NAME, TIMER_NAME
 from hermes_dreaming.commands.soak import build_soak_report, render_soak_report, render_soak_report_json
 
 
@@ -99,6 +100,13 @@ def test_soak_report_can_require_healthy_systemd_timer(tmp_path: Path) -> None:
             return subprocess.CompletedProcess(list(command), 0, "enabled\n", "")
         if command[2] == "is-active":
             return subprocess.CompletedProcess(list(command), 0, "active\n", "")
+        if command[2] == "show":
+            return subprocess.CompletedProcess(
+                list(command),
+                0,
+                f"LoadState=loaded\nUnit={SERVICE_NAME}\nNextElapseUSecRealtime=Sat 2026-06-20 03:00:00 UTC\n",
+                "",
+            )
         raise AssertionError(f"unexpected command: {command}")
 
     report = build_soak_report(state_root=state_root, now=NOW, require_timer=True, runner=runner)
@@ -107,9 +115,67 @@ def test_soak_report_can_require_healthy_systemd_timer(tmp_path: Path) -> None:
     assert report.timer.enabled is True
     assert report.timer.active is True
     assert calls == [
-        ["systemctl", "--user", "is-enabled", "hermes-ershov-nightly.timer"],
-        ["systemctl", "--user", "is-active", "hermes-ershov-nightly.timer"],
+        ["systemctl", "--user", "is-enabled", TIMER_NAME],
+        ["systemctl", "--user", "is-active", TIMER_NAME],
+        [
+            "systemctl",
+            "--user",
+            "show",
+            TIMER_NAME,
+            "-p",
+            "LoadState",
+            "-p",
+            "Unit",
+            "-p",
+            "NextElapseUSecRealtime",
+            "--no-pager",
+        ],
     ]
+
+
+def test_soak_report_fails_when_required_timer_points_to_wrong_unit(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, status="no-op")])
+
+    def runner(command):  # type: ignore[no-untyped-def]
+        if command[2] == "is-enabled":
+            return subprocess.CompletedProcess(list(command), 0, "enabled\n", "")
+        if command[2] == "is-active":
+            return subprocess.CompletedProcess(list(command), 0, "active\n", "")
+        if command[2] == "show":
+            return subprocess.CompletedProcess(
+                list(command),
+                0,
+                "LoadState=loaded\nUnit=other.service\nNextElapseUSecRealtime=Sat 2026-06-20 03:00:00 UTC\n",
+                "",
+            )
+        raise AssertionError(f"unexpected command: {command}")
+
+    report = build_soak_report(state_root=state_root, now=NOW, require_timer=True, runner=runner)
+
+    assert report.passed is False
+    assert report.timer.unit == "other.service"
+    assert "Unit=other.service" in report.reasons[-1]
+
+
+def test_soak_report_fails_when_required_timer_has_no_next_elapse(tmp_path: Path) -> None:
+    state_root = tmp_path / "state"
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, status="no-op")])
+
+    def runner(command):  # type: ignore[no-untyped-def]
+        if command[2] == "is-enabled":
+            return subprocess.CompletedProcess(list(command), 0, "enabled\n", "")
+        if command[2] == "is-active":
+            return subprocess.CompletedProcess(list(command), 0, "active\n", "")
+        if command[2] == "show":
+            return subprocess.CompletedProcess(list(command), 0, f"LoadState=loaded\nUnit={SERVICE_NAME}\n", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    report = build_soak_report(state_root=state_root, now=NOW, require_timer=True, runner=runner)
+
+    assert report.passed is False
+    assert report.timer.next_elapse is None
+    assert "NextElapseUSecRealtime=empty" in report.reasons[-1]
 
 
 def test_soak_report_can_require_successful_run_source(tmp_path: Path) -> None:

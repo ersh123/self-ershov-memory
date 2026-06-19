@@ -45,12 +45,14 @@ COMMIT="$(git -C ~/.hermes/plugins/hermes-ershov rev-parse --short HEAD)"
 ershov soak --state-root ~/.hermes/ershov --since-hours 30 --require-timer --require-source systemd --require-commit "$COMMIT" --require-clean
 ```
 
-Manual starts prove the service command works. The stricter `--require-source
-systemd` gate only accepts ledger entries written by the systemd service
-environment. `--require-commit` ties the evidence to the installed checkout that
-will be released. Commit matches require at least 7 git hash characters on both
-sides, so a too-short historical ledger prefix cannot satisfy the gate.
-`--require-clean` rejects runs produced by a dirty installed checkout.
+Manual starts prove the service command works. `--require-timer` checks that the
+user timer is enabled, active, loaded, points at `hermes-ershov-nightly.service`,
+and has a next scheduled elapse. The stricter `--require-source systemd` gate
+only accepts ledger entries written by the systemd service environment.
+`--require-commit` ties the evidence to the installed checkout that will be
+released. Commit matches require at least 7 git hash characters on both sides,
+so a too-short historical ledger prefix cannot satisfy the gate. `--require-clean`
+rejects runs produced by a dirty installed checkout.
 A passing `soak` after the real schedule fires is the stronger
 evidence for stable operations.
 

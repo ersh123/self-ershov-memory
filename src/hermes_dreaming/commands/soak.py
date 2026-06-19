@@ -8,7 +8,7 @@ import subprocess
 from typing import Any, Callable, Sequence
 
 from .. import state as state_module
-from .install_systemd import TIMER_NAME
+from .install_systemd import SERVICE_NAME, TIMER_NAME
 
 Runner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]
 MIN_COMMIT_MATCH_CHARS = 7
@@ -20,6 +20,9 @@ class TimerProbe:
     checked: bool
     enabled: bool | None
     active: bool | None
+    load_state: str | None = None
+    unit: str | None = None
+    next_elapse: str | None = None
     error: str | None = None
 
 
@@ -105,6 +108,15 @@ def _run_systemctl(command: Sequence[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(list(command), capture_output=True, text=True, check=False)
 
 
+def _parse_systemctl_show(output: str) -> dict[str, str]:
+    properties: dict[str, str] = {}
+    for line in output.splitlines():
+        key, separator, value = line.partition("=")
+        if separator:
+            properties[key] = value.strip()
+    return properties
+
+
 def _probe_timer(*, timer_name: str = TIMER_NAME, runner: Runner | None = None, checked: bool = True) -> TimerProbe:
     if not checked:
         return TimerProbe(timer_name=timer_name, checked=False, enabled=None, active=None)
@@ -113,6 +125,21 @@ def _probe_timer(*, timer_name: str = TIMER_NAME, runner: Runner | None = None, 
     try:
         enabled_result = run(["systemctl", "--user", "is-enabled", timer_name])
         active_result = run(["systemctl", "--user", "is-active", timer_name])
+        show_result = run(
+            [
+                "systemctl",
+                "--user",
+                "show",
+                timer_name,
+                "-p",
+                "LoadState",
+                "-p",
+                "Unit",
+                "-p",
+                "NextElapseUSecRealtime",
+                "--no-pager",
+            ]
+        )
     except FileNotFoundError:
         return TimerProbe(timer_name=timer_name, checked=True, enabled=None, active=None, error="systemctl not found")
     except OSError as exc:
@@ -120,15 +147,36 @@ def _probe_timer(*, timer_name: str = TIMER_NAME, runner: Runner | None = None, 
 
     enabled_text = (enabled_result.stdout or enabled_result.stderr or "").strip()
     active_text = (active_result.stdout or active_result.stderr or "").strip()
+    show_text = (show_result.stdout or show_result.stderr or "").strip()
+    show_properties = _parse_systemctl_show(show_result.stdout or "")
+    load_state = show_properties.get("LoadState") or None
+    unit = show_properties.get("Unit") or None
+    next_elapse = show_properties.get("NextElapseUSecRealtime") or None
     enabled = enabled_result.returncode == 0 and enabled_text in {"enabled", "static", "generated", "linked"}
     active = active_result.returncode == 0 and active_text == "active"
-    error = None
+    errors = []
     if not enabled:
-        error = f"is-enabled={enabled_text or enabled_result.returncode}"
+        errors.append(f"is-enabled={enabled_text or enabled_result.returncode}")
     if not active:
-        active_error = f"is-active={active_text or active_result.returncode}"
-        error = f"{error}; {active_error}" if error else active_error
-    return TimerProbe(timer_name=timer_name, checked=True, enabled=enabled, active=active, error=error)
+        errors.append(f"is-active={active_text or active_result.returncode}")
+    if show_result.returncode != 0:
+        errors.append(f"show={show_text or show_result.returncode}")
+    if load_state != "loaded":
+        errors.append(f"LoadState={load_state or 'empty'}")
+    if unit != SERVICE_NAME:
+        errors.append(f"Unit={unit or 'empty'}")
+    if next_elapse in {None, "", "n/a"}:
+        errors.append("NextElapseUSecRealtime=empty")
+    return TimerProbe(
+        timer_name=timer_name,
+        checked=True,
+        enabled=enabled,
+        active=active,
+        load_state=load_state,
+        unit=unit,
+        next_elapse=next_elapse,
+        error="; ".join(errors) or None,
+    )
 
 
 def build_soak_report(
@@ -246,6 +294,9 @@ def render_soak_report(report: SoakReport) -> str:
     if report.timer.checked:
         timer_state = (
             f"enabled={report.timer.enabled}, active={report.timer.active}"
+            + (f", load={report.timer.load_state}" if report.timer.load_state is not None else "")
+            + (f", unit={report.timer.unit}" if report.timer.unit is not None else "")
+            + (f", next={report.timer.next_elapse}" if report.timer.next_elapse is not None else "")
             + (f", error={report.timer.error}" if report.timer.error else "")
         )
 

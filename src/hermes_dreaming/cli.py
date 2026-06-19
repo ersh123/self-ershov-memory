@@ -893,6 +893,9 @@ def main(argv: list[str] | None = None) -> int:
         except NightlyAlreadyRunning as exc:
             print(f"nightly failed: {exc}")
             return 1
+        except Exception as exc:
+            print(f"nightly failed: {type(exc).__name__}: {exc}")
+            return 1
         print(render_nightly_memory(result).rstrip())
         return 0 if result.success else 1
 

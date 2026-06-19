@@ -97,6 +97,10 @@ def _empty_harvest(*, recent: int, output_path: Path | None = None, **_kwargs) -
     )
 
 
+def _broken_harvest(*_args, **_kwargs) -> HarvestResult:  # type: ignore[no-untyped-def]
+    raise RuntimeError("session harvest exploded")
+
+
 def test_run_nightly_memory_stages_reports_compacts_and_records_ledger(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(nightly_module, "harvest_recent", _fake_harvest)
     live_root = _live_root(tmp_path)
@@ -244,6 +248,39 @@ def test_run_nightly_memory_rejects_concurrent_run_before_writes(tmp_path: Path,
     assert not (artifact_root / "_sources" / "nightly-recent-sessions.md").exists()
 
 
+def test_run_nightly_memory_records_failed_run_when_pipeline_crashes(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(nightly_module, "harvest_recent", _broken_harvest)
+    monkeypatch.setenv("HERMES_ERSHOV_RUN_SOURCE", "systemd")
+    live_root = _live_root(tmp_path)
+    artifact_root = tmp_path / "artifacts"
+    state_root = tmp_path / "state"
+
+    try:
+        run_nightly_memory(
+            live_root=live_root,
+            artifact_root=artifact_root,
+            state_root=state_root,
+            provider_name="offline-marker",
+            model=None,
+            base_url=None,
+            compact=False,
+        )
+    except RuntimeError as exc:
+        assert "session harvest exploded" in str(exc)
+    else:  # pragma: no cover - assertion branch
+        raise AssertionError("broken harvest should raise")
+
+    ledger = read_run_ledger(ledger_path=state_root / "runs.jsonl")
+    assert len(ledger) == 1
+    assert ledger[0]["command"] == "nightly"
+    assert ledger[0]["success"] is False
+    assert ledger[0]["artifact_status"] == "failed"
+    assert ledger[0]["run_source"] == "systemd"
+    assert ledger[0]["errors"] == ["RuntimeError: session harvest exploded"]
+    assert "failed before completion" in ledger[0]["summary"]
+    assert json.loads((state_root / "state.json").read_text(encoding="utf-8"))["last_run"]["success"] is False
+
+
 def test_run_nightly_memory_records_invalid_artifact_without_live_write(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(nightly_module, "harvest_recent", _fake_harvest)
     missing_live_root = tmp_path / "missing-live"
@@ -336,3 +373,36 @@ def test_nightly_cli_returns_nonzero_when_lock_is_held(tmp_path: Path, monkeypat
     assert exit_code == 1
     assert "nightly failed: nightly already running" in capsys.readouterr().out
     assert read_run_ledger(ledger_path=state_root / "runs.jsonl") == []
+
+
+def test_nightly_cli_returns_nonzero_and_records_failed_run_on_pipeline_crash(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    monkeypatch.setattr(nightly_module, "harvest_recent", _broken_harvest)
+    live_root = _live_root(tmp_path)
+    artifact_root = tmp_path / "artifacts"
+    state_root = tmp_path / "state"
+
+    exit_code = main(
+        [
+            "nightly",
+            "--live-root",
+            str(live_root),
+            "--artifact-root",
+            str(artifact_root),
+            "--state-root",
+            str(state_root),
+            "--recent",
+            "2",
+            "--no-llm",
+            "--no-compact",
+            "--no-weekly",
+        ]
+    )
+
+    assert exit_code == 1
+    assert "nightly failed: RuntimeError: session harvest exploded" in capsys.readouterr().out
+    ledger = read_run_ledger(ledger_path=state_root / "runs.jsonl")
+    assert len(ledger) == 1
+    assert ledger[0]["success"] is False
+    assert ledger[0]["artifact_status"] == "failed"

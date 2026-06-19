@@ -150,6 +150,40 @@ def _record_nightly_run(result: NightlyMemoryResult) -> None:
     )
 
 
+def _record_nightly_failure(
+    *,
+    state_root: Path,
+    live_root: Path,
+    artifact_root: Path,
+    run_source: str,
+    error: BaseException,
+) -> None:
+    error_text = f"{type(error).__name__}: {error}"
+    record_run(
+        {
+            "command": "nightly",
+            "success": False,
+            "artifact_id": None,
+            "artifact_status": "failed",
+            "artifact_dir": None,
+            "artifact_root": str(artifact_root),
+            "live_root": str(live_root),
+            "run_source": run_source,
+            "summary": f"nightly failed before completion: {error_text}",
+            "sessions": 0,
+            "redactions": 0,
+            "proposals": 0,
+            "digest_path": None,
+            "inbox_digest_path": None,
+            "compacted": 0,
+            "errors": [error_text],
+        },
+        state_path=state_root / "state.json",
+        ledger_path=state_root / "runs.jsonl",
+        diary_path=state_root / "ERSHOV.md",
+    )
+
+
 def run_nightly_memory(
     *,
     live_root: Path,
@@ -167,19 +201,35 @@ def run_nightly_memory(
         raise ValueError("recent must be greater than 0")
 
     resolved_state_root = _state_root(state_root)
+    run_source = _run_source_from_env()
     with _exclusive_nightly_lock(resolved_state_root / "nightly.lock"):
-        return _run_nightly_memory_locked(
-            live_root=live_root,
-            artifact_root=artifact_root,
-            archive_root=archive_root,
-            state_root=resolved_state_root,
-            recent=recent,
-            provider_name=provider_name,
-            model=model,
-            base_url=base_url,
-            compact=compact,
-            include_weekly=include_weekly,
-        )
+        try:
+            return _run_nightly_memory_locked(
+                live_root=live_root,
+                artifact_root=artifact_root,
+                archive_root=archive_root,
+                state_root=resolved_state_root,
+                recent=recent,
+                provider_name=provider_name,
+                model=model,
+                base_url=base_url,
+                compact=compact,
+                include_weekly=include_weekly,
+                run_source=run_source,
+            )
+        except Exception as exc:
+            try:
+                _record_nightly_failure(
+                    state_root=resolved_state_root,
+                    live_root=Path(live_root),
+                    artifact_root=Path(artifact_root),
+                    run_source=run_source,
+                    error=exc,
+                )
+            except Exception:
+                pass
+            raise
+
 
 
 def _run_nightly_memory_locked(
@@ -194,6 +244,7 @@ def _run_nightly_memory_locked(
     base_url: str | None = "https://api.deepseek.com/v1",
     compact: bool = True,
     include_weekly: bool = True,
+    run_source: str | None = None,
 ) -> NightlyMemoryResult:
     if recent <= 0:
         raise ValueError("recent must be greater than 0")
@@ -202,7 +253,7 @@ def _run_nightly_memory_locked(
     artifact_root = Path(artifact_root)
     archive_root = Path(archive_root) if archive_root is not None else artifact_root.parent / "archive"
     resolved_state_root = _state_root(state_root)
-    run_source = _run_source_from_env()
+    run_source = run_source or _run_source_from_env()
     source_bundle = _source_bundle_path(artifact_root)
 
     harvest = harvest_recent(

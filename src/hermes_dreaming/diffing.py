@@ -4,7 +4,7 @@ from difflib import unified_diff
 from pathlib import Path
 
 from .apply import preview_proposal_content, resolve_live_target_path
-from .artifact import DreamArtifact, DreamProposal
+from .artifact import DreamArtifact
 
 
 def _legacy_review_output(artifact: DreamArtifact) -> str:

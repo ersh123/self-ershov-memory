@@ -50,25 +50,25 @@ def test_inbox_apply_ready_filter_includes_only_approved_or_applied_rows(tmp_pat
     live_root = tmp_path / "live"
     live_root.mkdir()
 
-    apply_ready_artifact = _write_inbox_artifact(
+    _write_inbox_artifact(
         live_root,
         artifact_id="artifact-apply-ready",
         status="staged",
         proposals=[_memory_proposal(id="p-approved", approved=True)],
     )
-    blocked_artifact = _write_inbox_artifact(
+    _write_inbox_artifact(
         live_root,
         artifact_id="artifact-blocked",
         status="staged",
         proposals=[_memory_proposal(id="p-pending", approved=False)],
     )
-    applied_artifact = _write_inbox_artifact(
+    _write_inbox_artifact(
         live_root,
         artifact_id="artifact-already-applied",
         status="applied",
         proposals=[_memory_proposal(id="p-applied", approved=True, applied=True)],
     )
-    invalid_artifact = _write_inbox_artifact(
+    _write_inbox_artifact(
         live_root,
         artifact_id="artifact-invalid",
         status="invalid",

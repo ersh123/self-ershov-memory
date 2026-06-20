@@ -11,7 +11,6 @@ The public API returns compact, deterministic digests suitable for prompt
 injection into the Hermes Ershov curation loop.
 """
 
-import json
 import logging
 import os
 import sqlite3

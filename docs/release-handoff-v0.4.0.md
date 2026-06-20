@@ -46,6 +46,7 @@ This is the short follow-up note for the v0.4.0 release lane.
 - `git diff --check` (clean)
 - `zizmor .github/workflows` (GitHub Actions security lint passes; Release/Publish runtime artifact caches are disabled)
 - `pip-audit . --strict --progress-spinner off` and `pip-audit --local --skip-editable --progress-spinner off` (known Python dependency vulnerability scans pass)
+- `ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers` (dead-code lint passes)
 - `python3 -m build` (succeeds)
 - `twine check --strict dist/*.whl dist/*.tar.gz` (package metadata and README rendering pass)
 - `python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json` (succeeds)

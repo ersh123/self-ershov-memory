@@ -73,6 +73,7 @@ Three additive fields on `DreamArtifact`:
 - Coverage gate passes with `--cov-fail-under=80` (current local total: 82.58%).
 - `zizmor .github/workflows` passes and Release/Publish runtime artifact workflows keep uv cache disabled to reduce cache-poisoning exposure.
 - `pip-audit . --strict --progress-spinner off` and `pip-audit --local --skip-editable --progress-spinner off` pass against declared dependencies and the locked local Python environment.
+- `ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers` passes and keeps unused imports, unused locals, and lambda assignments out of release gates.
 - `python scripts/hermes_plugin_smoke.py` passes and exercises the root Hermes plugin wrapper with a controlled SessionDB nightly run.
 - `python -m build` succeeds, and both wheel and source distribution installs are smoked against all public CLI aliases.
 - `twine check --strict dist/*.whl dist/*.tar.gz` verifies package metadata and README rendering before release/publish artifacts are accepted.

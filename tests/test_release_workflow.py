@@ -24,6 +24,7 @@ def test_release_workflow_build_job_uses_ci_strength_gates() -> None:
         "uv run --locked --extra dev zizmor .github/workflows",
         "uv run --locked --extra dev pip-audit . --strict --progress-spinner off",
         "uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off",
+        "uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers",
         "python -m compileall -q __init__.py src scripts",
         "pytest -q --cov=hermes_dreaming",
         "--cov-fail-under=80",
@@ -96,6 +97,7 @@ def test_publish_workflow_publishes_only_from_release_event_with_oidc() -> None:
     assert "uv run --locked --extra dev zizmor .github/workflows" in build_chunk
     assert "uv run --locked --extra dev pip-audit . --strict --progress-spinner off" in build_chunk
     assert "uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off" in build_chunk
+    assert "uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers" in build_chunk
     assert "uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz" in build_chunk
     assert "uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json" in build_chunk
     assert "uv run --locked --extra dev python scripts/generate_release_manifest.py --dist dist" in build_chunk

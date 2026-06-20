@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -16,8 +16,8 @@ from ..analyze import (
     rollback_evidence_count,
 )
 from ..artifact import DreamArtifact, DreamProposal, load_artifact, proposal_state
-from .inbox import build_inbox, render_inbox
-from ..triage import PRIORITY_ORDER, RISK_ORDER, proposal_detail_lines, sorted_proposals
+from .inbox import build_inbox
+from ..triage import PRIORITY_ORDER, RISK_ORDER
 
 
 TARGET_KIND_WEIGHT = {
@@ -322,7 +322,6 @@ def _artifact_priority_score(artifact: DreamArtifact, *, previous_artifact: Drea
 
 def _proposal_sort_key(proposal: DreamProposal, *, score: int) -> tuple[int, int, float, str]:
     kind_rank = {"user": 0, "skill": 1, "memory": 2, "fact": 3}.get(proposal.target_kind, 4)
-    evidence_rank = -len(proposal.provenance)
     return (-score, kind_rank, -proposal.confidence, proposal.id)
 
 

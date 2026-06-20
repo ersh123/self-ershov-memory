@@ -37,6 +37,7 @@ Contributor documentation and GitHub templates are welcome, but they do not cons
 - [ ] `zizmor .github/workflows`
 - [ ] `pip-audit . --strict --progress-spinner off`
 - [ ] `pip-audit --local --skip-editable --progress-spinner off`
+- [ ] `ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers`
 - [ ] `python -m build`
 - [ ] `twine check --strict dist/*.whl dist/*.tar.gz`
 - [ ] `python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json`

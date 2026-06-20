@@ -902,7 +902,10 @@ def render_providers_table(rows: list[ProviderInfo]) -> str:
     headers = ("NAME", "KIND", "STATUS", "NOTES")
     data = [(r.name, r.kind, r.status, r.notes) for r in rows]
     widths = [max(len(headers[i]), max(len(row[i]) for row in data)) for i in range(len(headers))]
-    line = lambda values: "  ".join(value.ljust(widths[i]) for i, value in enumerate(values))
+
+    def line(values: tuple[str, ...]) -> str:
+        return "  ".join(value.ljust(widths[i]) for i, value in enumerate(values))
+
     lines = [line(headers), line(tuple("-" * w for w in widths))]
     for row in data:
         lines.append(line(row))
@@ -913,7 +916,10 @@ def render_provider_doctor_table(rows: list[ProviderDoctorRow]) -> str:
     headers = ("NAME", "KIND", "READINESS", "CHECKS", "NOTES")
     data = [(r.name, r.kind, r.readiness, r.checks, r.notes) for r in rows]
     widths = [max(len(headers[i]), max(len(row[i]) for row in data)) for i in range(len(headers))]
-    line = lambda values: "  ".join(value.ljust(widths[i]) for i, value in enumerate(values))
+
+    def line(values: tuple[str, ...]) -> str:
+        return "  ".join(value.ljust(widths[i]) for i, value in enumerate(values))
+
     lines = [line(headers), line(tuple("-" * w for w in widths))]
     for row in data:
         lines.append(line(row))

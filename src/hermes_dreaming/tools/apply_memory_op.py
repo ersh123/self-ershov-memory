@@ -11,7 +11,7 @@ import fcntl
 import hashlib
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .. import memory_io as mio
 from .. import state as state_module
@@ -307,7 +307,6 @@ def handler(params: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
             }
 
         backup_path = mio.backup_target(path, backup_root, target=target)
-        attempted_write = True
         try:
             if proposed.op == "add":
                 result = mio.apply_add(path, proposed.new_text or "")

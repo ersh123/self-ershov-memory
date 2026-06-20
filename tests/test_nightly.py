@@ -4,7 +4,7 @@ import fcntl
 import json
 from pathlib import Path
 
-from hermes_dreaming.artifact import DreamArtifact, DreamProposal, SourceSnapshot, load_artifact, write_artifact
+from hermes_dreaming.artifact import DreamArtifact, DreamProposal, load_artifact, write_artifact
 from hermes_dreaming.cli import main
 from hermes_dreaming.commands import nightly as nightly_module
 from hermes_dreaming.commands.harvest import HarvestResult

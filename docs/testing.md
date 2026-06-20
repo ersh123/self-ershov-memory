@@ -28,6 +28,7 @@ The matrix follows the current public docs for:
 - SPDX package information: https://spdx.github.io/spdx-spec/v2.3/package-information/
 - OpenSSF Scorecard Packaging: https://github.com/ossf/scorecard/blob/main/docs/checks.md#packaging
 - pip-audit Python dependency vulnerability auditing: https://github.com/pypa/pip-audit
+- Ruff Python linter: https://github.com/astral-sh/ruff
 
 ## Local gates
 
@@ -42,6 +43,7 @@ git diff --check
 uv run --locked --extra dev zizmor .github/workflows
 uv run --locked --extra dev pip-audit . --strict --progress-spinner off
 uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off
+uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers
 uv run --locked --extra dev python -m build
 uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz
 uv run --locked --extra dev python scripts/hermes_plugin_smoke.py
@@ -78,6 +80,7 @@ GitHub Actions runs the same release-shaped matrix:
 - whitespace check with `git diff --check`
 - Zizmor GitHub Actions security lint
 - pip-audit known-vulnerability scans for declared project dependencies and the locked local Python environment
+- Ruff dead-code lint for unused imports, unused locals, and lambda assignments
 - bytecode compile with `compileall`
 - full pytest suite
 - coverage report for `hermes_dreaming`, `hermes_ershov`, and `hermes_mnemos`, with an 80% minimum gate

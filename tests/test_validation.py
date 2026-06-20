@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from hermes_dreaming.artifact import DreamArtifact, DreamProposal
 from hermes_dreaming.validation import validate_artifact, validate_memory_op
 

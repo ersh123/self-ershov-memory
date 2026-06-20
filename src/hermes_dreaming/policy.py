@@ -455,7 +455,6 @@ def evaluate_live_op(
 
     lifecycle = "active"
 
-    capacity_reason = ""
     if normalized_new and len(normalized_new) > TARGET_POLICY[target]["max_chars"]:
         return LivePolicyDecision(False, target, op, key, policy_version, normalized_old, normalized_new, lifecycle=lifecycle, capacity_ok=False, capacity_reason=f"{target} entry exceeds char budget", error=f"{target} entry exceeds capacity", warnings=warnings)
     if normalized_new and normalized_new.count("\n") + 1 > TARGET_POLICY[target]["max_lines"]:

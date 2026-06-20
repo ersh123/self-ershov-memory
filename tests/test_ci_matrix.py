@@ -20,6 +20,7 @@ def test_ci_workflow_shows_release_shaped_test_matrix() -> None:
         "zizmor .github/workflows",
         "pip-audit . --strict --progress-spinner off",
         "pip-audit --local --skip-editable --progress-spinner off",
+        "ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers",
         "python -m compileall -q __init__.py src scripts",
         "pytest -q",
         "--cov=hermes_dreaming",
@@ -167,6 +168,7 @@ def test_publish_workflow_uses_release_only_trusted_publishing() -> None:
         "uv run --locked --extra dev zizmor .github/workflows",
         "uv run --locked --extra dev pip-audit . --strict --progress-spinner off",
         "uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off",
+        "uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers",
         "uv run --locked --extra dev python -m compileall -q __init__.py src scripts fuzzers",
         "uv run --locked --extra dev pytest -q --cov=hermes_dreaming",
         "uv run --locked --extra dev pytest -q tests/test_pbt.py tests/test_fuzz_harness.py",
@@ -229,6 +231,7 @@ def test_pyproject_dev_extra_includes_package_workflow_and_dependency_security_c
 
     assert any(dep.startswith("twine>=") for dep in dev_deps)
     assert any(dep.startswith("pip-audit>=") for dep in dev_deps)
+    assert any(dep.startswith("ruff>=") for dep in dev_deps)
     assert any(dep.startswith("zizmor>=") for dep in dev_deps)
 
 

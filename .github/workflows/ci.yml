@@ -59,6 +59,9 @@ jobs:
           uv run --locked --extra dev pip-audit . --strict --progress-spinner off
           uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off
 
+      - name: Lint Python dead code
+        run: uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers
+
       - name: Compile package
         run: uv run --locked --extra dev python -m compileall -q __init__.py src scripts
 

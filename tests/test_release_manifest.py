@@ -25,7 +25,7 @@ def _write_minimal_pyproject(path: Path) -> None:
         "\n".join(
             [
                 "[project]",
-                'name = "hermes-ershov"',
+                'name = "self-ershov-memory"',
                 'version = "0.4.0"',
                 "",
             ]
@@ -36,9 +36,9 @@ def _write_minimal_pyproject(path: Path) -> None:
 
 def _write_minimal_dist(dist: Path) -> None:
     dist.mkdir()
-    (dist / "hermes_ershov-0.4.0-py3-none-any.whl").write_text("wheel", encoding="utf-8")
-    (dist / "hermes_ershov-0.4.0.tar.gz").write_text("sdist", encoding="utf-8")
-    (dist / "hermes-ershov-sbom.spdx.json").write_text("sbom", encoding="utf-8")
+    (dist / "self_ershov_memory-0.4.0-py3-none-any.whl").write_text("wheel", encoding="utf-8")
+    (dist / "self_ershov_memory-0.4.0.tar.gz").write_text("sdist", encoding="utf-8")
+    (dist / "self-ershov-memory-sbom.spdx.json").write_text("sbom", encoding="utf-8")
 
 
 def test_release_manifest_records_subject_digests_and_source_metadata(tmp_path: Path) -> None:
@@ -61,9 +61,9 @@ def test_release_manifest_records_subject_digests_and_source_metadata(tmp_path: 
 
     assert manifest["schema_version"] == 1
     assert manifest["created_at"] == "2026-06-19T00:00:00Z"
-    assert manifest["project"] == {"name": "hermes-ershov", "version": "0.4.0"}
+    assert manifest["project"] == {"name": "self-ershov-memory", "version": "0.4.0"}
     assert manifest["source"] == {
-        "repository": "https://github.com/ersh123/hermes-ershov",
+        "repository": "https://github.com/ersh123/self-ershov-memory",
         "ref": "main",
         "commit": "abcdef1234567890",
     }
@@ -71,22 +71,22 @@ def test_release_manifest_records_subject_digests_and_source_metadata(tmp_path: 
 
     subjects = {subject["name"]: subject for subject in manifest["subjects"]}
     assert set(subjects) == {
-        "hermes_ershov-0.4.0-py3-none-any.whl",
-        "hermes_ershov-0.4.0.tar.gz",
-        "hermes-ershov-sbom.spdx.json",
+        "self_ershov_memory-0.4.0-py3-none-any.whl",
+        "self_ershov_memory-0.4.0.tar.gz",
+        "self-ershov-memory-sbom.spdx.json",
     }
-    assert subjects["hermes_ershov-0.4.0-py3-none-any.whl"]["kind"] == "wheel"
-    assert subjects["hermes_ershov-0.4.0.tar.gz"]["kind"] == "sdist"
-    assert subjects["hermes-ershov-sbom.spdx.json"]["kind"] == "spdx-sbom"
+    assert subjects["self_ershov_memory-0.4.0-py3-none-any.whl"]["kind"] == "wheel"
+    assert subjects["self_ershov_memory-0.4.0.tar.gz"]["kind"] == "sdist"
+    assert subjects["self-ershov-memory-sbom.spdx.json"]["kind"] == "spdx-sbom"
     assert all(len(subject["digest"]["sha256"]) == 64 for subject in subjects.values())
     assert manifest["checksum_manifest"] == {
         "name": "SHA256SUMS",
         "generated_after_manifest": True,
         "covers": [
-            "hermes-ershov-sbom.spdx.json",
-            "hermes_ershov-0.4.0-py3-none-any.whl",
-            "hermes_ershov-0.4.0.tar.gz",
             "release-manifest.json",
+            "self-ershov-memory-sbom.spdx.json",
+            "self_ershov_memory-0.4.0-py3-none-any.whl",
+            "self_ershov_memory-0.4.0.tar.gz",
         ],
     }
 
@@ -128,8 +128,8 @@ def test_release_manifest_rejects_missing_required_asset(tmp_path: Path) -> None
     dist = tmp_path / "dist"
     _write_minimal_pyproject(pyproject)
     dist.mkdir()
-    (dist / "hermes_ershov-0.4.0-py3-none-any.whl").write_text("wheel", encoding="utf-8")
-    (dist / "hermes-ershov-sbom.spdx.json").write_text("sbom", encoding="utf-8")
+    (dist / "self_ershov_memory-0.4.0-py3-none-any.whl").write_text("wheel", encoding="utf-8")
+    (dist / "self-ershov-memory-sbom.spdx.json").write_text("sbom", encoding="utf-8")
 
     with pytest.raises(ValueError, match="expected exactly one sdist"):
         module.build_release_manifest(dist_dir=dist, pyproject_path=pyproject)

@@ -424,40 +424,6 @@ wheels = [
 ]
 
 [[package]]
-name = "hermes-ershov"
-version = "0.4.0"
-source = { editable = "." }
-
-[package.optional-dependencies]
-dev = [
-    { name = "build" },
-    { name = "hypothesis" },
-    { name = "pip-audit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "twine" },
-    { name = "zizmor" },
-]
-llm = [
-    { name = "openai" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
-    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
-    { name = "openai", marker = "extra == 'llm'", specifier = ">=1.30.0" },
-    { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.10" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15" },
-    { name = "twine", marker = "extra == 'dev'", specifier = ">=6.0" },
-    { name = "zizmor", marker = "extra == 'dev'", specifier = ">=1.25" },
-]
-provides-extras = ["dev", "llm"]
-
-[[package]]
 name = "httpcore"
 version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1245,6 +1211,40 @@ sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/46/f5af3402b579fd5e11573ce652019a67074317e18c1935cc0b4ba9b35552/secretstorage-3.5.0-py3-none-any.whl", hash = "sha256:0ce65888c0725fcb2c5bc0fdb8e5438eece02c523557ea40ce0703c266248137", size = 15554, upload-time = "2025-11-23T19:02:51.545Z" },
 ]
+
+[[package]]
+name = "self-ershov-memory"
+version = "0.4.0"
+source = { editable = "." }
+
+[package.optional-dependencies]
+dev = [
+    { name = "build" },
+    { name = "hypothesis" },
+    { name = "pip-audit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "twine" },
+    { name = "zizmor" },
+]
+llm = [
+    { name = "openai" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
+    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
+    { name = "openai", marker = "extra == 'llm'", specifier = ">=1.30.0" },
+    { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.10" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15" },
+    { name = "twine", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "zizmor", marker = "extra == 'dev'", specifier = ">=1.25" },
+]
+provides-extras = ["dev", "llm"]
 
 [[package]]
 name = "sniffio"

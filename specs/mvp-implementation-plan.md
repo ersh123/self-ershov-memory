@@ -114,7 +114,7 @@ Marks the artifact discarded and moves it into the archive root without touching
 Lists known artifacts in the artifact root.
 
 ### `ershov providers list`
-Prints a table of the built-in providers (`offline-marker`, `openai-compatible`, `deepseek`, `openrouter`, `ollama`) with their `STATUS` (always, optional, missing) and `NOTES`. Does not ping external services.
+Prints a table of the built-in providers (`offline-marker`, `openai-compatible`, `deepseek`, `ollama`) with their `STATUS` (always, optional, missing) and `NOTES`. Does not ping external services.
 
 ## Artifact format
 

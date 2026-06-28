@@ -1,107 +1,76 @@
-1|# self-ershov-memory
-2|
-3|[![CI](https://github.com/ersh123/self-ershov-memory/actions/workflows/ci.yml/badge.svg)](https://github.com/ersh123/self-ershov-memory/actions/workflows/ci.yml)
-4|[![CodeQL](https://github.com/ersh123/self-ershov-memory/actions/workflows/codeql.yml/badge.svg)](https://github.com/ersh123/self-ershov-memory/actions/workflows/codeql.yml)
-5|
-6|Self-audit engine for Hermes operators. Анализирует диалоги с оператором → извлекает коррекции и правила → обновляет USER.md/MEMORY.md → создаёт скиллы. Ничего не применяет без проверки, не выдумывает, не удаляет.
-7|
-8|## Как работает
-9|
-10|```
-11|state.db (диалоги)
-12|    → find_corrections() — regex-поиск жалоб и правил
-13|    → classify_topic() — keyword-based классификация
-14|    → dedup — если тема уже в USER.md → пропуск
-15|    → snapshot() — бэкап перед записью
-16|    → apply → USER.md / MEMORY.md / skills
-17|```
-18|
-19|- **Idempotent** — повторный прогон = 0 изменений
-20|- **Dedup** — не дублирует уже известные правила
-21|- **Snapshot** — `~/snapshots/` перед каждой правкой
-22|- **Validation** — проверка лимитов (4000/8000 chars)
-23|
-24|## Установка
-25|
-26|```bash
-27|hermes plugins install ersh123/self-ershov-memory --enable
-28|```
-29|
-30|## Быстрый старт
-31|
-32|```bash
-33|# Dry-run — посмотреть что изменится
-34|python3 ~/.hermes/scripts/self-audit.py --dry-run --quick
-35|
-36|# Применить
-37|python3 ~/.hermes/scripts/self-audit.py --execute --full
-38|
-39|# Только за 24 часа
-40|python3 ~/.hermes/scripts/self-audit.py --execute --quick
-41|```
-42|
-43|## Триггеры (ручной запуск)
-44|
-45|- «проанализируй мои диалоги»
-46|- «проверь себя»
-47|- «что я тебе говорил»
-48|
-49|## Cron
-50|
-51|| Режим | Расписание | Доставка |
-52||-------|-----------|----------|
-53|| Quick (24ч) | Ежедневно 22:00 KRSK | local |
-54|| Full (30д) | Еженедельно Вс 20:00 KRSK | Telegram |
-55|
-56|## Тема → Скилл
-57|
-58|| Тема | Создаваемый скилл |
-59||------|-------------------|
-60|| vibe-coding | `vibe-coding` |
-61|| opencode | `opencode-setup` |
-62|| ресерч | `deep-research` |
-63|| скиллы | `skill-quality` |
-64|| deepseek | `deepseek-setup` |
-65|
-66|## CLI (legacy nightly memory — оставлено для совместимости)
-67|
-68|```bash
-69|# Ручной nightly (если нужен)
-70|ershov nightly --live-root ./live --artifact-root ./artifacts --no-llm
-71|
-72|# Review артефакта
-73|ershov review --open ./artifacts/<id>
-74|
-75|# Apply вручную
-76|ershov apply ./artifacts/<id> --live-root ./live --backup-root ./backups
-77|
-78|# Статус
-79|ershov status --artifact-root ./artifacts
-80|```
-81|
-82|## Структура репозитория
-83|
-84|```
-85|src/hermes_dreaming/    — основной движок
-86|scripts/               — self-audit.py, release-скрипты
-87|docs/                  — документация
-88|tests/                 — CI, fuzz, property-based
-89|examples/              — quickstart fixture
-90|```
-91|
-92|## Разработка
-93|
-94|```bash
-95|uv sync --locked --extra dev
-96|uv run --locked --extra dev pytest -q
-97|```
-98|
-99|PR через GitHub Issues. Перед PR: `pytest -q`, `ruff check`, `git diff --check`.
-100|
-101|## Безопасность
-102|
-103|- Никаких автоматических записей в live-память
-104|- Снапшоты перед каждой правкой
-105|- Валидация размеров файлов
-106|- Сухие прогоны перед реальными изменениями
-107|
+# self-ershov-memory
+
+![self-ershov-memory hero](assets/readme/self-ershov-memory-hero.png)
+
+[![CI](https://github.com/ersh123/self-ershov-memory/actions/workflows/ci.yml/badge.svg)](https://github.com/ersh123/self-ershov-memory/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ersh123/self-ershov-memory/actions/workflows/codeql.yml/badge.svg)](https://github.com/ersh123/self-ershov-memory/actions/workflows/codeql.yml)
+
+Self-audit memory engine for Hermes operators. It reads Hermes dialogue history, extracts durable operator corrections, snapshots memory files, and updates `USER.md` / `MEMORY.md` only through explicit, reviewable runs.
+
+## What it does
+
+```text
+~/.hermes/state.db dialogs
+  -> correction/rule extraction
+  -> topic classification + dedup
+  -> snapshot before write
+  -> USER.md / MEMORY.md / skill updates
+```
+
+- **Idempotent**: repeat runs skip already-known corrections.
+- **Grounded**: durable memory comes from dialogue evidence, not fabricated assumptions.
+- **Safe by default**: `--dry-run` is the default; `--execute` is explicit.
+- **Provider policy**: direct `deepseek` is the fallback LLM path; OpenRouter is intentionally not supported.
+
+## Install
+
+```bash
+hermes plugins install ersh123/self-ershov-memory --enable
+```
+
+## Quick start
+
+```bash
+# Inspect proposed changes
+self-ershov-memory --dry-run --quick
+
+# Full 30-day pass, still dry-run unless --execute is present
+self-ershov-memory --dry-run --full
+
+# Apply after review
+self-ershov-memory --execute --full
+```
+
+## Legacy compatibility
+
+The old staged-memory CLI is still available for existing automation:
+
+```bash
+ershov nightly --live-root ./live --artifact-root ./artifacts --no-llm
+ershov review --open ./artifacts/<id>
+ershov apply ./artifacts/<id> --live-root ./live --backup-root ./backups
+```
+
+## Development
+
+```bash
+uv sync --locked --extra dev
+uv run --locked --extra dev pytest -q
+uv run --locked --extra dev python -m build
+uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz
+```
+
+## Safety
+
+- Snapshots before memory writes.
+- Size validation for memory files.
+- No secret values in docs, logs, or provider doctor output.
+- GitHub CLI credentials are for repository operations only, never LLM access.
+
+## Offline fixture and staged artifact compatibility
+
+The legacy fixture uses explicit `MEMORY:` or `DREAM:` lines so offline demos can run with no API key. `ershov discard ./artifacts/<artifact-id> --archive-root ./archive` is the one-shot way to archive a staged artifact. `--dry-run` deliberately creates no backups and writes no live files; revert evidence can be `not-run` until a real apply exists; real apply records backup evidence in the artifact manifest before live writes, including `backup_records` tombstones. Schema-valid model output is still treated as untrusted: provider output must carry provenance / `source_quote` evidence.
+
+## Release and testing gates
+
+See `docs/testing.md` and `docs/release-integrity.md`. Public stable promotion requires `--since-hours 96 --min-successful 3 --strict-systemd`; one-night smoke evidence uses `--since-hours 30 --min-successful 1 --strict-systemd`. `status --release-gate` checks the last nightly run / last successful nightly evidence. `providers doctor --provider deepseek --env-file ... --fix-plan --strict` is configuration readiness only, not an end-to-end generation test, and works without printing secret values and never prints secret values. Use `--from-systemd`, `--env-file`, `--require-provider deepseek`, and `--git-timeout-seconds` when validating installed timers. Legacy revert evidence may be `legacy-degraded`; verify post-apply shas / post-apply sha before treating rollback as strong evidence.

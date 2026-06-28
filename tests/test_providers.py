@@ -13,7 +13,6 @@ from hermes_dreaming.providers import (
     OfflineMarkerProvider,
     OllamaProvider,
     OpenAICompatibleProvider,
-    OpenRouterProvider,
     build_provider,
     doctor_providers,
     load_env_files,
@@ -387,26 +386,12 @@ def test_build_provider_supports_deepseek_flash_defaults() -> None:
     assert provider.base_url == "https://api.deepseek.com/v1"
 
 
-def test_build_provider_supports_openrouter_defaults() -> None:
-    provider = build_provider("openrouter")
-
-    assert isinstance(provider, OpenRouterProvider)
-    assert provider.model == "openrouter/auto"
-    assert provider.base_url == "https://openrouter.ai/api/v1"
-
-
 def test_deepseek_provider_requires_api_key(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 
     with pytest.raises(RuntimeError, match="DEEPSEEK_API_KEY"):
         DeepSeekProvider().generate([_source()], _context(tmp_path))
 
-
-def test_openrouter_provider_requires_api_key(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-
-    with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
-        OpenRouterProvider().generate([_source()], _context(tmp_path))
 
 
 def test_list_providers_returns_all_builtins_with_status() -> None:
@@ -417,7 +402,6 @@ def test_list_providers_returns_all_builtins_with_status() -> None:
     assert "offline-marker" in names
     assert "openai-compatible" in names
     assert "deepseek" in names
-    assert "openrouter" in names
     assert "ollama" in names
     offline = next(row for row in rows if row.name == "offline-marker")
     assert offline.status == "always"
@@ -428,9 +412,6 @@ def test_list_providers_returns_all_builtins_with_status() -> None:
     deepseek_row = next(row for row in rows if row.name == "deepseek")
     assert deepseek_row.status in {"optional", "missing"}
     assert deepseek_row.kind == "openai_compat"
-    openrouter_row = next(row for row in rows if row.name == "openrouter")
-    assert openrouter_row.status in {"optional", "missing"}
-    assert openrouter_row.kind == "openai_compat"
     ollama_row = next(row for row in rows if row.name == "ollama")
     # We never ping external services; ollama status is "optional" by import-only design.
     assert ollama_row.status == "optional"
@@ -559,14 +540,14 @@ def test_provider_fix_plan_marks_generic_openai_base_url_placeholder() -> None:
 
 def test_provider_doctor_blocks_missing_openai_dependency_or_key() -> None:
     rows = doctor_providers(
-        provider="openrouter",
+        provider="deepseek",
         env={},
         openai_available=False,
     )
 
     assert rows[0].readiness == "blocked"
     assert "openai package: missing" in rows[0].checks
-    assert "OPENROUTER_API_KEY: missing" in rows[0].checks
+    assert "DEEPSEEK_API_KEY: missing" in rows[0].checks
 
 
 def test_provider_doctor_never_pings_ollama(monkeypatch) -> None:

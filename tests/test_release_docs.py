@@ -82,7 +82,7 @@ def test_safety_doc_matches_current_quickstart_target_surface() -> None:
 def test_quickstart_uses_temp_live_root_and_dry_run_before_apply() -> None:
     text = (REPO_ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8")
 
-    assert 'export DEMO_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/hermes-ershov-quickstart.XXXXXX")"' in text
+    assert 'export DEMO_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/self-ershov-memory-quickstart.XXXXXX")"' in text
     assert 'cp -R "$FIXTURE_ROOT/live" "$LIVE_ROOT"' in text
     assert 'export LIVE_ROOT="$(pwd)/examples/quickstart/live"' not in text
 
@@ -99,7 +99,7 @@ def test_quickstart_uses_temp_live_root_and_dry_run_before_apply() -> None:
     assert "remove files that were created by apply" in text
     assert 'ershov revert "$ARTIFACT_DIR" --live-root "$LIVE_ROOT" --backup-root "$BACKUP_ROOT" --yes --validate' in text
     assert "/tmp/hermes-ershov-quickstart/artifacts" not in text
-    assert "/tmp/hermes-ershov-quickstart.<suffix>/artifacts" in text
+    assert "/tmp/self-ershov-memory-quickstart.<suffix>/artifacts" in text
 
 
 def test_readme_has_single_discard_example_and_trust_loop_notes() -> None:
@@ -375,9 +375,9 @@ def test_release_integrity_runbook_is_public_and_honest() -> None:
 
     for phrase in (
         "It is not release approval.",
-        "wheel: `hermes_ershov-<version>-py3-none-any.whl`",
-        "source distribution: `hermes_ershov-<version>.tar.gz`",
-        "SPDX SBOM: `hermes-ershov-sbom.spdx.json`",
+        "wheel: `self_ershov_memory-<version>-py3-none-any.whl`",
+        "source distribution: `self_ershov_memory-<version>.tar.gz`",
+        "SPDX SBOM: `self-ershov-memory-sbom.spdx.json`",
         "release manifest: `release-manifest.json`",
         "checksum manifest: `SHA256SUMS`",
         "scripts/generate_release_sbom.py",
@@ -390,7 +390,7 @@ def test_release_integrity_runbook_is_public_and_honest() -> None:
         "gh release download",
         "gh release verify-asset",
         "gh attestation verify",
-        "--repo ersh123/hermes-ershov",
+        "--repo ersh123/self-ershov-memory",
         "does not prove the product is stable",
         "--since-hours 96 --min-successful 3 --strict-systemd --require-provider deepseek",
         "Manual runs, local artifact verification, and green CI are release-candidate evidence only",

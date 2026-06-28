@@ -22,7 +22,7 @@ If you are outside Hermes, the repo still exposes the `ershov` console script fo
 ## Current release facts
 
 - GitHub release: `v0.2.0`
-- GitHub release URL: https://github.com/ersh123/hermes-ershov/releases/tag/v0.2.0
+- GitHub release URL: https://github.com/ersh123/self-ershov-memory/releases/tag/v0.2.0
 - PyPI is still skipped; GitHub Release assets are the distribution path until a PyPI token and policy exist
 - PR #3 is still draft and untouched
 

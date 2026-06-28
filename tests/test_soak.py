@@ -455,7 +455,7 @@ def test_soak_report_fails_when_clean_checkout_is_required_but_missing(tmp_path:
 
 def test_soak_report_fails_when_clean_checkout_is_required_but_ledger_is_legacy(tmp_path: Path) -> None:
     state_root = tmp_path / "state"
-    legacy_record = _nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234")
+    legacy_record = _nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234", git_dirty=False)
     legacy_record.pop("git_dirty")
     _write_ledger(state_root, [legacy_record])
 
@@ -501,7 +501,9 @@ def test_soak_cli_returns_nonzero_when_gate_fails(tmp_path: Path, capsys) -> Non
 
 def test_soak_cli_returns_zero_when_gate_passes(tmp_path: Path, capsys) -> None:
     state_root = tmp_path / "state"
-    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234")])
+    record = _nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234", git_dirty=False)
+    record["timestamp"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    _write_ledger(state_root, [record])
 
     assert (
         main(
@@ -544,7 +546,7 @@ def test_soak_cli_strict_systemd_fills_release_gate_defaults(tmp_path: Path, mon
         [
             _nightly(success=True, hours_ago=4, run_source="systemd", git_commit="abc1234"),
             _nightly(success=True, hours_ago=3, run_source="systemd", git_commit="abc1234"),
-            _nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234"),
+            _nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234", git_dirty=False),
         ],
     )
     captured: dict[str, object] = {}
@@ -589,7 +591,7 @@ def test_soak_cli_strict_systemd_preserves_explicit_one_night_smoke_overrides(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
     state_root = tmp_path / "state"
-    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234")])
+    _write_ledger(state_root, [_nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234", git_dirty=False)])
     captured: dict[str, object] = {}
 
     def fake_build_soak_report(**kwargs):  # type: ignore[no-untyped-def]
@@ -647,7 +649,7 @@ def test_soak_cli_strict_systemd_preserves_min_successful_promotion_gate(
         state_root,
         [
             _nightly(success=True, hours_ago=3, run_source="systemd", git_commit="abc1234"),
-            _nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234"),
+            _nightly(success=True, hours_ago=2, run_source="systemd", git_commit="abc1234", git_dirty=False),
         ],
     )
     captured: dict[str, object] = {}

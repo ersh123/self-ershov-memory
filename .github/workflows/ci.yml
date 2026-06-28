@@ -1,140 +1,139 @@
-1|name: CI
-2|
-3|on:
-4|  push:
-5|    branches:
-6|      - main
-7|  pull_request:
-8|    branches:
-9|      - main
-10|  workflow_dispatch:
-11|
-12|permissions:
-13|  contents: read
-14|
-15|concurrency:
-16|  group: ${{ github.workflow }}-${{ github.ref }}
-17|  cancel-in-progress: true
-18|
-19|jobs:
-20|  test:
-21|    name: test py${{ matrix.python-version }}
-22|    runs-on: ubuntu-latest
-23|    timeout-minutes: 20
-24|    strategy:
-25|      fail-fast: false
-26|      matrix:
-27|        python-version:
-28|          - '3.11'
-29|          - '3.12'
-30|          - '3.13'
-31|
-32|    steps:
-33|      - name: Check out repository
-34|        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-35|        with:
-36|          persist-credentials: false
-37|
-38|      - name: Set up Python
-39|        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-40|        with:
-41|          python-version: ${{ matrix.python-version }}
-42|
-43|      - name: Set up uv
-44|        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-45|        with:
-46|          enable-cache: true
-47|
-48|      - name: Sync locked dev environment
-49|        run: uv sync --locked --extra dev --python "${{ matrix.python-version }}"
-50|
-51|      - name: Check whitespace
-52|        run: git diff --check
-53|
-54|      - name: Lint GitHub Actions security
-55|        run: uv run --locked --extra dev zizmor .github/workflows
-56|
-57|      - name: Audit Python dependency vulnerabilities
-58|        run: |
-59|          uv run --locked --extra dev pip-audit . --strict --progress-spinner off
-60|          uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off
-61|
-62|      - name: Lint Python dead code
-63|        run: uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers
-64|
-65|      - name: Compile package
-66|        run: uv run --locked --extra dev python -m compileall -q __init__.py src scripts
-67|
-68|      - name: Run tests with coverage
-69|        run: uv run --locked --extra dev pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80
-70|
-71|      - name: Run property-based tests directly
-72|        run: uv run --locked --extra dev pytest -q tests/test_pbt.py
-73|
-74|      - name: Smoke Hermes plugin wrapper
-75|        run: uv run --locked --extra dev python scripts/hermes_plugin_smoke.py
-76|
-77|      - name: Build package
-78|        run: |
-79|          uv run --locked --extra dev python -m build
-80|          uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz
-81|          uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/self-ershov-memory-sbom.spdx.json
-82|          uv run --locked --extra dev python scripts/generate_release_manifest.py --dist dist
-83|          uv run --locked --extra dev python scripts/generate_release_checksums.py --dist dist
-84|          uv run --locked --extra dev python scripts/verify_release_artifacts.py --dist dist
-85|
-86|      - name: Smoke installed wheel
-87|        run: |
-88|          uv run --no-cache --no-project --isolated --with dist/*.whl ershov --help
-89|          uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers list
-90|          uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers doctor --provider offline-marker --strict
-91|          uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers doctor --provider offline-marker --from-systemd --strict
-92|          mkdir -p /tmp/ershov-wheel-smoke-state
-93|          printf '%s\n' 'HERMES_ERSHOV_PROVIDER="offline-marker"' 'DEEPSEEK_API_KEY="sk-ci-...rint"' > /tmp/ershov-wheel-nightly.env
-94|          if uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers doctor --provider deepseek --env-file /tmp/ershov-wheel-nightly.env --fix-plan --strict > /tmp/ershov-wheel-doctor.txt; then
-95|            echo "expected deepseek env-file doctor to fail while wheel lacks the llm extra or provider selector mismatches"
-96|            exit 1
-97|          fi
-98|          grep -q 'DEEPSEEK_API_KEY=<secret>' /tmp/ershov-wheel-doctor.txt
-99|          if grep -q 'sk-ci-...rint' /tmp/ershov-wheel-doctor.txt; then
-100|            echo "secret leaked from providers doctor fix-plan"
-101|            exit 1
-102|          fi
-103|          uv run --no-cache --no-project --isolated --with dist/*.whl ershov status --release-gate --state-root /tmp/ershov-wheel-smoke-state
-104|          uv run --no-cache --no-project --isolated --with dist/*.whl ershov status --release-gate --state-root /tmp/ershov-wheel-smoke-state --require-provider deepseek --provider-env-file /tmp/ershov-wheel-nightly.env --fix-plan > /tmp/ershov-wheel-status.txt
-105|          grep -q 'Stable fix plan:' /tmp/ershov-wheel-status.txt
-106|          grep -q 'DEEPSEEK_API_KEY=<secret>' /tmp/ershov-wheel-status.txt
-107|          if grep -q 'sk-ci-...rint' /tmp/ershov-wheel-status.txt; then
-108|            echo "secret leaked from status release-gate fix-plan"
-109|            exit 1
-110|          fi
-111|          if uv run --no-cache --no-project --isolated --with dist/*.whl ershov soak --state-root /tmp/ershov-wheel-smoke-state --since-hours 30 --min-successful 1 --require-timer --require-source systemd --require-commit "$GITHUB_SHA" --require-clean --require-provider deepseek --provider-env-file /tmp/ershov-wheel-nightly.env --fix-plan > /tmp/ershov-wheel-soak.txt; then
-112|            echo "expected installed wheel soak gate to fail without scheduled-run evidence"
-113|            exit 1
-114|          fi
-115|          grep -q '## Fix plan' /tmp/ershov-wheel-soak.txt
-116|          grep -q 'DEEPSEEK_API_KEY=<secret>' /tmp/ershov-wheel-soak.txt
-117|          if grep -q 'sk-ci-...rint' /tmp/ershov-wheel-soak.txt; then
-118|            echo "secret leaked from soak fix-plan"
-119|            exit 1
-120|          fi
-121|          uv run --no-cache --no-project --isolated --with dist/*.whl ershov revert --help
-122|          uv run --no-cache --no-project --isolated --with dist/*.whl self-ershov-memory --help
-123|          uv run --no-cache --no-project --isolated --with dist/*.whl mnemos --help
-124|          uv run --no-cache --no-project --isolated --with dist/*.whl nightmem --help
-125|          uv run --no-cache --no-project --isolated --with dist/*.whl dreaming --help
-126|          uv run --no-cache --no-project --isolated --with dist/*.whl python -m hermes_dreaming --help
-127|          uv run --no-cache --no-project --isolated --with dist/*.whl python -m hermes_ershov --help
-128|          uv run --no-cache --no-project --isolated --with dist/*.whl python -m hermes_mnemos --help
-129|
-130|      - name: Smoke source distribution
-131|        run: |
-132|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz ershov --help
-133|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz self-ershov-memory --help
-134|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz mnemos --help
-135|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz nightmem --help
-136|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz dreaming --help
-137|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz python -m hermes_dreaming --help
-138|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz python -m hermes_ershov --help
-139|          uv run --no-cache --no-project --isolated --with dist/*.tar.gz python -m hermes_mnemos --help
-140|
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - '3.11'
+          - '3.12'
+          - '3.13'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+
+      - name: Sync locked dev environment
+        run: uv sync --locked --extra dev --python "${{ matrix.python-version }}"
+
+      - name: Check whitespace
+        run: git diff --check
+
+      - name: Lint GitHub Actions security
+        run: uv run --locked --extra dev zizmor .github/workflows
+
+      - name: Audit Python dependency vulnerabilities
+        run: |
+          uv run --locked --extra dev pip-audit . --strict --progress-spinner off
+          uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off
+
+      - name: Lint Python dead code
+        run: uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers
+
+      - name: Compile package
+        run: uv run --locked --extra dev python -m compileall -q __init__.py src scripts
+
+      - name: Run tests with coverage
+        run: uv run --locked --extra dev pytest -q --cov=hermes_dreaming --cov=hermes_ershov --cov=hermes_mnemos --cov-report=term-missing:skip-covered --cov-report=xml --cov-fail-under=80
+
+      - name: Run property-based tests directly
+        run: uv run --locked --extra dev pytest -q tests/test_pbt.py
+
+      - name: Smoke Hermes plugin wrapper
+        run: uv run --locked --extra dev python scripts/hermes_plugin_smoke.py
+
+      - name: Build package
+        run: |
+          uv run --locked --extra dev python -m build
+          uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz
+          uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/self-ershov-memory-sbom.spdx.json
+          uv run --locked --extra dev python scripts/generate_release_manifest.py --dist dist
+          uv run --locked --extra dev python scripts/generate_release_checksums.py --dist dist
+          uv run --locked --extra dev python scripts/verify_release_artifacts.py --dist dist
+
+      - name: Smoke installed wheel
+        run: |
+          uv run --no-cache --no-project --isolated --with dist/*.whl ershov --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers list
+          uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers doctor --provider offline-marker --strict
+          uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers doctor --provider offline-marker --from-systemd --strict
+          mkdir -p /tmp/ershov-wheel-smoke-state
+          printf '%s\n' 'HERMES_ERSHOV_PROVIDER="offline-marker"' 'DEEPSEEK_API_KEY="sk-ci-do-not-print"' > /tmp/ershov-wheel-nightly.env
+          if uv run --no-cache --no-project --isolated --with dist/*.whl ershov providers doctor --provider deepseek --env-file /tmp/ershov-wheel-nightly.env --fix-plan --strict > /tmp/ershov-wheel-doctor.txt; then
+            echo "expected deepseek env-file doctor to fail while wheel lacks the llm extra or provider selector mismatches"
+            exit 1
+          fi
+          grep -q 'DEEPSEEK_API_KEY=<secret>' /tmp/ershov-wheel-doctor.txt
+          if grep -q 'sk-ci-do-not-print' /tmp/ershov-wheel-doctor.txt; then
+            echo "secret leaked from providers doctor fix-plan"
+            exit 1
+          fi
+          uv run --no-cache --no-project --isolated --with dist/*.whl ershov status --release-gate --state-root /tmp/ershov-wheel-smoke-state
+          uv run --no-cache --no-project --isolated --with dist/*.whl ershov status --release-gate --state-root /tmp/ershov-wheel-smoke-state --require-provider deepseek --provider-env-file /tmp/ershov-wheel-nightly.env --fix-plan > /tmp/ershov-wheel-status.txt
+          grep -q 'Stable fix plan:' /tmp/ershov-wheel-status.txt
+          grep -q 'DEEPSEEK_API_KEY=<secret>' /tmp/ershov-wheel-status.txt
+          if grep -q 'sk-ci-do-not-print' /tmp/ershov-wheel-status.txt; then
+            echo "secret leaked from status release-gate fix-plan"
+            exit 1
+          fi
+          if uv run --no-cache --no-project --isolated --with dist/*.whl ershov soak --state-root /tmp/ershov-wheel-smoke-state --since-hours 30 --min-successful 1 --require-timer --require-source systemd --require-commit "$GITHUB_SHA" --require-clean --require-provider deepseek --provider-env-file /tmp/ershov-wheel-nightly.env --fix-plan > /tmp/ershov-wheel-soak.txt; then
+            echo "expected installed wheel soak gate to fail without scheduled-run evidence"
+            exit 1
+          fi
+          grep -q '## Fix plan' /tmp/ershov-wheel-soak.txt
+          grep -q 'DEEPSEEK_API_KEY=<secret>' /tmp/ershov-wheel-soak.txt
+          if grep -q 'sk-ci-do-not-print' /tmp/ershov-wheel-soak.txt; then
+            echo "secret leaked from soak fix-plan"
+            exit 1
+          fi
+          uv run --no-cache --no-project --isolated --with dist/*.whl ershov revert --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl self-ershov-memory --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl mnemos --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl nightmem --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl dreaming --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl python -m hermes_dreaming --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl python -m self_ershov_memory --help
+          uv run --no-cache --no-project --isolated --with dist/*.whl python -m hermes_mnemos --help
+
+      - name: Smoke source distribution
+        run: |
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz ershov --help
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz self-ershov-memory --help
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz mnemos --help
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz nightmem --help
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz dreaming --help
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz python -m hermes_dreaming --help
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz python -m self_ershov_memory --help
+          uv run --no-cache --no-project --isolated --with dist/*.tar.gz python -m hermes_mnemos --help

@@ -465,30 +465,7 @@ class OpenAICompatibleProvider:
             provenance = []
         if not provenance:
             raise ProviderOutputError(self.name, "proposal provenance must be non-empty", payload_hash=payload_hash)
-        # DEBI 2026-06-24 RUTHLESS: if there's only one source BUNDLE (not one
-        # source_ref — source_refs is expanded per line, so it's always large),
-        # accept ANY provenance and rewrite it to the canonical "path:N" form.
-        # LLM providers like DeepSeek-v4-flash/pro produce wildly inconsistent
-        # provenance formats (":Session 1", ", Session 3", ":10-12", "(Session 1,
-        # dialogue digest)") that the original strict validator rejected, blocking
-        # the entire nightly run for 3+ days. Better to record 1 line of an
-        # audit trail than 0 lines of memory.
-        from pathlib import PurePosixPath as _PPP
-        import re as _RE
-        # source_lines keys are {path}:{line} — unique paths = unique bundles.
-        unique_paths = {_PPP(k.split(":", 1)[0]).as_posix() for k in source_lines.keys()}
-        if len(unique_paths) == 1:
-            only_ref = next(iter(unique_paths))
-            corrected_single: list[str] = []
-            for ref in provenance:
-                ref_clean = ref.strip()
-                if not ref_clean:
-                    continue
-                m_num = _RE.search(r"(\d+)", ref_clean)
-                line = m_num.group(1) if m_num else "1"
-                corrected_single.append(f"{only_ref}:{line}")
-            provenance = corrected_single
-        # Also build relaxed_refs for the (currently unused) multi-bundle path.
+        # Accept harmless formatting drift, but never accept fabricated source names.
         from pathlib import PurePosixPath
         relaxed_refs: set[str] = set(source_refs)
         for ref in list(source_refs):
@@ -499,66 +476,54 @@ class OpenAICompatibleProvider:
         if len(source_refs) == 1 and source_refs:
             only_ref = next(iter(source_refs))
             relaxed_refs.add(PurePosixPath(only_ref).name)
-        invalid_refs: list[str] = []  # bypassed for single-bundle runs
-        if not (len(source_refs) == 1 and source_refs):
-            invalid_refs = sorted(ref for ref in provenance if ref not in relaxed_refs)
+        invalid_refs = sorted(ref for ref in provenance if ref not in relaxed_refs)
         if invalid_refs:
-            # DEBI 2026-06-24 ULTIMATE FALLBACK: for single-bundle runs, accept
-            # any provenance and just point it at line 1. We've spent too much
-            # time chasing DeepSeek's hallucinated line numbers; recording a
-            # valid proposal is more valuable than perfect provenance.
-            if len(unique_paths) == 1:
-                provenance = [f"{next(iter(unique_paths))}:1" for _ in provenance]
-            else:
-                # Multi-bundle — keep the original strict check
-                corrected: list[str] = []
-                still_invalid: list[str] = []
-                import re as _re
-                line_re = _re.compile(r"^(\d+)(?:-(\d+))?$")
-                for ref in invalid_refs:
-                    ref_clean = ref.strip()
-                    if not ref_clean:
-                        continue
-                    # Strip " (Session X, ...)" suffixes the LLM sometimes adds
-                    if " (" in ref_clean:
-                        ref_clean = ref_clean.split(" (", 1)[0].strip()
-                    # Strip trailing anchor fragments like "#sessionid" the LLM adds
-                    if "#" in ref_clean:
-                        ref_clean = ref_clean.split("#", 1)[0]
-                    if ":" in ref_clean:
-                        ref_base, _, ref_line_raw = ref_clean.rpartition(":")
-                        ref_base = ref_base.strip()
-                        ref_line_raw = ref_line_raw.strip()
-                        first_line = None
-                        m = line_re.match(ref_line_raw)
-                        if m:
-                            first_line = m.group(1)
-                        else:
-                            m2 = _re.match(r"^\s*(\d+)", ref_line_raw)
-                            if m2:
-                                first_line = m2.group(1)
-                        if first_line:
-                            candidates = [r for r in source_refs if PurePosixPath(r).name == ref_base and r.endswith(":" + first_line)]
-                            if not candidates:
-                                candidates = [r for r in source_refs if PurePosixPath(r).name == ref_base]
-                        else:
-                            candidates = [r for r in source_refs if PurePosixPath(r).name == ref_base]
-                        if candidates:
-                            corrected.append(candidates[0])
-                            continue
+            corrected: list[str] = []
+            still_invalid: list[str] = []
+            import re as _re
+            line_re = _re.compile(r"^(\d+)(?:-(\d+))?$")
+            for ref in invalid_refs:
+                ref_clean = ref.strip()
+                if not ref_clean:
+                    continue
+                if " (" in ref_clean:
+                    ref_clean = ref_clean.split(" (", 1)[0].strip()
+                if "#" in ref_clean:
+                    ref_clean = ref_clean.split("#", 1)[0]
+                if ":" in ref_clean:
+                    ref_base, _, ref_line_raw = ref_clean.rpartition(":")
+                    ref_base = ref_base.strip()
+                    ref_line_raw = ref_line_raw.strip()
+                    first_line = None
+                    m = line_re.match(ref_line_raw)
+                    if m:
+                        first_line = m.group(1)
                     else:
-                        candidates = [r for r in source_refs if PurePosixPath(r).name == ref_clean]
-                        if candidates:
-                            corrected.append(candidates[0])
-                            continue
-                    still_invalid.append(ref)
-                if still_invalid:
-                    raise ProviderOutputError(
-                        self.name,
-                        f"proposal provenance must reference the source bundle: {', '.join(still_invalid)}",
-                        payload_hash=payload_hash,
-                    )
-                provenance = corrected
+                        m2 = _re.match(r"^\s*(\d+)", ref_line_raw)
+                        if m2:
+                            first_line = m2.group(1)
+                    if first_line:
+                        candidates = [r for r in source_refs if PurePosixPath(r).name == ref_base and r.endswith(":" + first_line)]
+                        if not candidates:
+                            candidates = [r for r in source_refs if PurePosixPath(r).name == ref_base]
+                    else:
+                        candidates = [r for r in source_refs if PurePosixPath(r).name == ref_base]
+                    if candidates:
+                        corrected.append(candidates[0])
+                        continue
+                else:
+                    candidates = [r for r in source_refs if PurePosixPath(r).name == ref_clean]
+                    if candidates:
+                        corrected.append(candidates[0])
+                        continue
+                still_invalid.append(ref)
+            if still_invalid:
+                raise ProviderOutputError(
+                    self.name,
+                    f"proposal provenance must reference the source bundle: {', '.join(still_invalid)}",
+                    payload_hash=payload_hash,
+                )
+            provenance = corrected
 
         snippet = require_string("snippet")
         source_quote = require_string("source_quote")
@@ -696,24 +661,6 @@ class DeepSeekProvider(OpenAICompatibleProvider):
         return provider.generate(sources, context)
 
 
-@dataclass(slots=True)
-class OpenRouterProvider(OpenAICompatibleProvider):
-    model: str = "openrouter/auto"
-    api_key: str | None = None
-    base_url: str | None = "https://openrouter.ai/api/v1"
-    name: str = "openrouter"
-
-    def generate(self, sources: list[SourceSnapshot], context: DreamContext) -> tuple[str, list[DreamProposal], list[str]]:
-        api_key = self.api_key or os.environ.get("OPENROUTER_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENROUTER_API_KEY is required to use the openrouter provider")
-        provider = OpenAICompatibleProvider(
-            model=self.model or "openrouter/auto",
-            api_key=api_key,
-            base_url=self.base_url or "https://openrouter.ai/api/v1",
-            name=self.name,
-        )
-        return provider.generate(sources, context)
 
 
 @dataclass(slots=True)
@@ -777,12 +724,6 @@ def build_provider(name: str, *, model: str | None = None, api_key: str | None =
             api_key=api_key,
             base_url=base_url or "https://api.deepseek.com/v1",
         )
-    if normalized in {"openrouter", "openrouter-auto"}:
-        return OpenRouterProvider(
-            model=model or "openrouter/auto",
-            api_key=api_key,
-            base_url=base_url or "https://openrouter.ai/api/v1",
-        )
     if normalized in {"ollama", "ollama-native"}:
         return OllamaProvider(model=model or "qwen2.5:3b", api_key=api_key, base_url=base_url or "http://127.0.0.1:11434")
     raise ValueError(f"unknown provider: {name}")
@@ -808,18 +749,15 @@ class ProviderDoctorRow:
 PROVIDER_API_KEY_ENVS = {
     "openai-compatible": "OPENAI_API_KEY",
     "deepseek": "DEEPSEEK_API_KEY",
-    "openrouter": "OPENROUTER_API_KEY",
 }
 PROVIDER_DEFAULT_MODELS = {
     "openai-compatible": "gpt-4o-mini",
     "deepseek": "deepseek-v4-flash",
-    "openrouter": "openrouter/auto",
     "ollama": "qwen2.5:3b",
 }
 PROVIDER_DEFAULT_BASE_URLS = {
     "openai-compatible": "<base-url>",
     "deepseek": "https://api.deepseek.com/v1",
-    "openrouter": "https://openrouter.ai/api/v1",
     "ollama": "http://127.0.0.1:11434",
 }
 
@@ -844,8 +782,6 @@ def _canonical_provider_name(name: str) -> str:
         "deepseek": "deepseek",
         "deepseek-v4-flash": "deepseek",
         "deepseek-flash": "deepseek",
-        "openrouter": "openrouter",
-        "openrouter-auto": "openrouter",
         "ollama": "ollama",
         "ollama-native": "ollama",
     }
@@ -943,15 +879,14 @@ def doctor_providers(
         if row.name == "offline-marker":
             checks.append("api key: not required")
             checks.append("dependency: built-in")
-        elif row.name in {"openai-compatible", "deepseek", "openrouter"}:
+        elif row.name in {"openai-compatible", "deepseek"}:
             checks.append(f"openai package: {'present' if has_openai else 'missing'}")
             key_name = api_key_env
             if key_name is None:
                 key_name = {
                     "openai-compatible": "OPENAI_API_KEY",
                     "deepseek": "DEEPSEEK_API_KEY",
-                    "openrouter": "OPENROUTER_API_KEY",
-                }[row.name]
+                                }[row.name]
             key_present = _env_has(resolved_env, key_name)
             checks.append(f"{key_name}: {'present' if key_present else 'missing'}")
             url_valid = _url_ok(base_url)
@@ -1006,12 +941,6 @@ def list_providers() -> list[ProviderInfo]:
             kind="openai_compat",
             status="optional" if _openai_compat_available() else "missing",
             notes="requires [llm] extra and DEEPSEEK_API_KEY; default model deepseek-v4-flash",
-        ),
-        ProviderInfo(
-            name="openrouter",
-            kind="openai_compat",
-            status="optional" if _openai_compat_available() else "missing",
-            notes="requires [llm] extra and OPENROUTER_API_KEY; default model openrouter/auto",
         ),
         ProviderInfo(
             name="ollama",

@@ -11,10 +11,11 @@ if SRC.exists() and str(SRC) not in sys.path:
 
 
 PRIMARY_COMMAND = "ershov"
+SELF_MEMORY_COMMAND = "self-memory"
+SELF_AUDIT_COMMAND = "self-audit"
 LEGACY_MNEMOS_COMMAND = "mnemos"
 LEGACY_NIGHTMEM_COMMAND = "nightmem"
 LEGACY_COMMAND = "dreaming"
-PRODUCT_NAME = "Hermes Ershov"
 PRODUCT_NAME = "Self Ershov Memory"
 
 def _run_self_audit(args: argparse.Namespace) -> int:
@@ -49,7 +50,9 @@ def _setup_dreaming_cli(parser: argparse.ArgumentParser) -> None:
 
 def register(ctx) -> None:
     for name, help_text in (
-        (PRIMARY_COMMAND, "Run the Self Ershov Memory engine"),
+        (PRIMARY_COMMAND, "Run the personal Hermes Ershov engine"),
+        (SELF_MEMORY_COMMAND, "Run the Self Ershov Memory engine"),
+        (SELF_AUDIT_COMMAND, "Run the Self Ershov Memory engine"),
         (LEGACY_MNEMOS_COMMAND, "Run the legacy compatibility command"),
         (LEGACY_NIGHTMEM_COMMAND, "Run the legacy compatibility command"),
         (LEGACY_COMMAND, "Run the legacy compatibility command"),
@@ -66,9 +69,13 @@ def register(ctx) -> None:
             ),
         )
 
-    skill_md = ROOT / "skills" / "self-ershov-memory" / "SKILL.md"
-    if skill_md.exists():
+    skill_candidates = [ROOT / "skills" / "self-ershov-memory" / "SKILL.md", ROOT / "skills" / "hermes-ershov" / "SKILL.md"]
+    skill_md = next((path for path in skill_candidates if path.exists()), None)
+    if skill_md is not None:
         ctx.register_skill("ershov", skill_md)
+        ctx.register_skill("self-ershov-memory", skill_md)
+        ctx.register_skill("self-memory", skill_md)
+        ctx.register_skill("self-audit", skill_md)
         ctx.register_skill(LEGACY_MNEMOS_COMMAND, skill_md)
         ctx.register_skill(LEGACY_NIGHTMEM_COMMAND, skill_md)
         ctx.register_skill(LEGACY_COMMAND, skill_md)

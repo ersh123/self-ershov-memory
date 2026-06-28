@@ -56,7 +56,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/demo-dep.tar.gz", hash 
     encoded = json.dumps(sbom)
 
     assert sbom["spdxVersion"] == "SPDX-2.3"
-    assert sbom["creationInfo"]["creators"] == ["Tool: hermes-ershov-release-sbom"]
+    assert sbom["creationInfo"]["creators"] == ["Tool: self-ershov-memory-release-sbom"]
     assert sbom["creationInfo"]["created"] == "2026-06-20T00:00:00Z"
     assert "pkg:pypi/demo-package@1.2.3" in encoded
     assert "pkg:pypi/demo-dep@4.5.6" in encoded

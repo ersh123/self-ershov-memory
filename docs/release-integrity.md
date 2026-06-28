@@ -1,4 +1,4 @@
-# Hermes Ershov release integrity
+# Self Ershov Memory release integrity
 
 This is the public verification runbook for future GitHub Release assets.
 
@@ -9,9 +9,9 @@ commands as the contract the release workflow must satisfy.
 
 A release asset bundle must include exactly these integrity artifacts:
 
-- wheel: `hermes_ershov-<version>-py3-none-any.whl`
-- source distribution: `hermes_ershov-<version>.tar.gz`
-- SPDX SBOM: `hermes-ershov-sbom.spdx.json`
+- wheel: `self_ershov_memory-<version>-py3-none-any.whl`
+- source distribution: `self_ershov_memory-<version>.tar.gz`
+- SPDX SBOM: `self-ershov-memory-sbom.spdx.json`
 - release manifest: `release-manifest.json`
 - checksum manifest: `SHA256SUMS`
 
@@ -25,7 +25,7 @@ Build and verify locally before a release-facing workflow run:
 
 ```bash
 uv run --locked --extra dev python -m build
-uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json
+uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/self-ershov-memory-sbom.spdx.json
 uv run --locked --extra dev python scripts/generate_release_manifest.py --dist dist
 uv run --locked --extra dev python scripts/generate_release_checksums.py --dist dist
 uv run --locked --extra dev python scripts/verify_release_artifacts.py --dist dist
@@ -43,13 +43,13 @@ Replace `<tag>` with the approved release tag:
 
 ```bash
 TAG=<tag>
-OUT="$(mktemp -d "${TMPDIR:-/tmp}/hermes-ershov-release.XXXXXX")"
+OUT="$(mktemp -d "${TMPDIR:-/tmp}/self-ershov-memory-release.XXXXXX")"
 
 gh release download "$TAG" \
-  --repo ersh123/hermes-ershov \
-  --pattern "hermes_ershov-*.whl" \
-  --pattern "hermes_ershov-*.tar.gz" \
-  --pattern "hermes-ershov-sbom.spdx.json" \
+  --repo ersh123/self-ershov-memory \
+  --pattern "self_ershov_memory-*.whl" \
+  --pattern "self_ershov_memory-*.tar.gz" \
+  --pattern "self-ershov-memory-sbom.spdx.json" \
   --pattern "release-manifest.json" \
   --pattern "SHA256SUMS" \
   --dir "$OUT"
@@ -62,19 +62,19 @@ If GitHub Release asset attestations are present, also verify each downloaded
 asset against the release:
 
 ```bash
-gh release verify-asset "$TAG" --repo ersh123/hermes-ershov "$OUT"/hermes_ershov-*.whl
-gh release verify-asset "$TAG" --repo ersh123/hermes-ershov "$OUT"/hermes_ershov-*.tar.gz
-gh release verify-asset "$TAG" --repo ersh123/hermes-ershov "$OUT"/hermes-ershov-sbom.spdx.json
-gh release verify-asset "$TAG" --repo ersh123/hermes-ershov "$OUT"/release-manifest.json
+gh release verify-asset "$TAG" --repo ersh123/self-ershov-memory "$OUT"/self_ershov_memory-*.whl
+gh release verify-asset "$TAG" --repo ersh123/self-ershov-memory "$OUT"/self_ershov_memory-*.tar.gz
+gh release verify-asset "$TAG" --repo ersh123/self-ershov-memory "$OUT"/self-ershov-memory-sbom.spdx.json
+gh release verify-asset "$TAG" --repo ersh123/self-ershov-memory "$OUT"/release-manifest.json
 ```
 
 For lower-level provenance checks, use GitHub artifact attestations:
 
 ```bash
-gh attestation verify "$OUT"/hermes_ershov-*.whl --repo ersh123/hermes-ershov
-gh attestation verify "$OUT"/hermes_ershov-*.tar.gz --repo ersh123/hermes-ershov
-gh attestation verify "$OUT"/hermes-ershov-sbom.spdx.json --repo ersh123/hermes-ershov
-gh attestation verify "$OUT"/release-manifest.json --repo ersh123/hermes-ershov
+gh attestation verify "$OUT"/self_ershov_memory-*.whl --repo ersh123/self-ershov-memory
+gh attestation verify "$OUT"/self_ershov_memory-*.tar.gz --repo ersh123/self-ershov-memory
+gh attestation verify "$OUT"/self-ershov-memory-sbom.spdx.json --repo ersh123/self-ershov-memory
+gh attestation verify "$OUT"/release-manifest.json --repo ersh123/self-ershov-memory
 ```
 
 ## What this does not prove

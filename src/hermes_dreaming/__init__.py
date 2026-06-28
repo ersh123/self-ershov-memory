@@ -26,14 +26,20 @@ def _repo_root() -> Path:
 
     here = Path(__file__).resolve()
     for parent in here.parents:
-        skill_path = parent / "skills" / "hermes-ershov" / "SKILL.md"
-        if skill_path.exists():
-            return parent
+        for skill_name in ("self-ershov-memory", "hermes-ershov"):
+            skill_path = parent / "skills" / skill_name / "SKILL.md"
+            if skill_path.exists():
+                return parent
     return here.parents[2]
 
 
 def _skill_path() -> Path:
-    return _repo_root() / "skills" / "hermes-ershov" / "SKILL.md"
+    root = _repo_root()
+    for skill_name in ("self-ershov-memory", "hermes-ershov"):
+        path = root / "skills" / skill_name / "SKILL.md"
+        if path.exists():
+            return path
+    return root / "skills" / "self-ershov-memory" / "SKILL.md"
 
 
 def _normalize_dreaming_args(raw_args: list[str] | tuple[str, ...] | None) -> list[str]:

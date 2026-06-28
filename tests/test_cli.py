@@ -236,11 +236,11 @@ def test_providers_doctor_json_output(capsys) -> None:
 
 
 def test_providers_doctor_strict_returns_nonzero_for_unready_provider(capsys) -> None:
-    exit_code = main(["providers", "doctor", "--provider", "openrouter", "--strict"])
+    exit_code = main(["providers", "doctor", "--provider", "deepseek", "--strict"])
     output = capsys.readouterr().out
 
     assert exit_code == 1
-    assert "openrouter" in output
+    assert "deepseek" in output
     assert "blocked" in output or "missing" in output
 
 

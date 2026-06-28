@@ -32,7 +32,7 @@ def test_release_workflow_build_job_uses_ci_strength_gates() -> None:
         "python scripts/hermes_plugin_smoke.py",
         "python -m build",
         "uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz",
-        "uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json",
+        "uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/self-ershov-memory-sbom.spdx.json",
         "uv run --locked --extra dev python scripts/generate_release_manifest.py --dist dist",
         "uv run --locked --extra dev python scripts/generate_release_checksums.py --dist dist",
         "uv run --locked --extra dev python scripts/verify_release_artifacts.py --dist dist",
@@ -42,12 +42,12 @@ def test_release_workflow_build_job_uses_ci_strength_gates() -> None:
         "ershov status --release-gate --state-root /tmp/ershov-release-smoke-state --require-provider deepseek --provider-env-file /tmp/ershov-release-nightly.env --fix-plan",
         "ershov soak --state-root /tmp/ershov-release-smoke-state --since-hours 30 --min-successful 1 --require-timer --require-source systemd",
         "DEEPSEEK_API_KEY=<secret>",
-        "sk-release-do-not-print",
+        "sk-rel-do-not-print",
         "secret leaked from soak fix-plan",
         "uv run --no-cache --no-project --isolated --with dist/*.whl ershov revert --help",
-        "uv run --no-cache --no-project --isolated --with dist/*.whl hermes-ershov --help",
+        "uv run --no-cache --no-project --isolated --with dist/*.whl self-ershov-memory --help",
         "uv run --no-cache --no-project --isolated --with dist/*.tar.gz ershov --help",
-        "uv run --no-cache --no-project --isolated --with dist/*.tar.gz hermes-ershov --help",
+        "uv run --no-cache --no-project --isolated --with dist/*.tar.gz self-ershov-memory --help",
     ):
         assert gate in text
 
@@ -69,7 +69,7 @@ def test_release_workflow_uploads_assets_only_for_release_event() -> None:
     assert "uses: actions/download-artifact@" in upload_chunk
     assert "uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0" in upload_chunk
     assert "subject-path: dist/*" in upload_chunk
-    assert "hermes-ershov-sbom.spdx.json" in build_chunk
+    assert "self-ershov-memory-sbom.spdx.json" in build_chunk
     assert "generate_release_checksums.py --dist dist" in build_chunk
     assert "verify_release_artifacts.py" in build_chunk
     assert 'gh release upload "$GITHUB_REF_NAME" dist/* --clobber' in upload_chunk
@@ -99,12 +99,12 @@ def test_publish_workflow_publishes_only_from_release_event_with_oidc() -> None:
     assert "uv run --locked --extra dev pip-audit --local --skip-editable --progress-spinner off" in build_chunk
     assert "uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src scripts tests fuzzers" in build_chunk
     assert "uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz" in build_chunk
-    assert "uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/hermes-ershov-sbom.spdx.json" in build_chunk
+    assert "uv run --locked --extra dev python scripts/generate_release_sbom.py --output dist/self-ershov-memory-sbom.spdx.json" in build_chunk
     assert "uv run --locked --extra dev python scripts/generate_release_manifest.py --dist dist" in build_chunk
     assert "uv run --locked --extra dev python scripts/generate_release_checksums.py --dist dist" in build_chunk
     assert "uv run --locked --extra dev python scripts/verify_release_artifacts.py --dist dist" in build_chunk
-    assert "uv run --no-cache --no-project --isolated --with dist/*.whl hermes-ershov --help" in build_chunk
-    assert "uv run --no-cache --no-project --isolated --with dist/*.tar.gz hermes-ershov --help" in build_chunk
+    assert "uv run --no-cache --no-project --isolated --with dist/*.whl self-ershov-memory --help" in build_chunk
+    assert "uv run --no-cache --no-project --isolated --with dist/*.tar.gz self-ershov-memory --help" in build_chunk
     assert "path: |\n            dist/*.whl\n            dist/*.tar.gz" in build_chunk
     assert "dist/*\n" not in build_chunk
     assert "id-token: write" not in build_chunk

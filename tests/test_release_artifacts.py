@@ -55,7 +55,7 @@ def release_dist(tmp_path_factory: pytest.TempPathFactory) -> Path:
             "--lock",
             str(REPO_ROOT / "uv.lock"),
             "--output",
-            str(dist / "hermes-ershov-sbom.spdx.json"),
+            str(dist / "self-ershov-memory-sbom.spdx.json"),
         ],
         cwd=REPO_ROOT,
         check=True,
@@ -112,9 +112,9 @@ def test_release_artifact_verifier_accepts_built_dist(release_dist: Path) -> Non
     )
 
     assert len(evidence) == 5
-    assert any(line.startswith("wheel hermes_ershov-0.4.0") for line in evidence)
-    assert any(line.startswith("sdist hermes_ershov-0.4.0") for line in evidence)
-    assert any(line.startswith("sbom hermes-ershov-sbom.spdx.json") for line in evidence)
+    assert any(line.startswith("wheel self_ershov_memory-0.4.0") for line in evidence)
+    assert any(line.startswith("sdist self_ershov_memory-0.4.0") for line in evidence)
+    assert any(line.startswith("sbom self-ershov-memory-sbom.spdx.json") for line in evidence)
     assert any(line.startswith("manifest release-manifest.json subjects=3") for line in evidence)
     assert "checksums SHA256SUMS entries=4" in evidence
 
@@ -130,7 +130,7 @@ def test_release_artifact_verifier_rejects_sbom_missing_locked_package(
         target = dist / artifact.name
         target.write_bytes(artifact.read_bytes())
 
-    sbom_path = dist / "hermes-ershov-sbom.spdx.json"
+    sbom_path = dist / "self-ershov-memory-sbom.spdx.json"
     sbom = json.loads(sbom_path.read_text(encoding="utf-8"))
     sbom["packages"] = [package for package in sbom["packages"] if package["name"] != "pytest"]
     sbom_path.write_text(json.dumps(sbom), encoding="utf-8")

@@ -13,7 +13,7 @@ from .install_systemd import SERVICE_NAME, TIMER_NAME, default_env_files
 
 Runner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]
 MIN_COMMIT_MATCH_CHARS = 7
-FIX_PLAN_PROVIDERS = {"offline-marker", "openai-compatible", "deepseek", "openrouter", "ollama"}
+FIX_PLAN_PROVIDERS = {"offline-marker", "openai-compatible", "deepseek", "ollama"}
 
 
 @dataclass(slots=True)

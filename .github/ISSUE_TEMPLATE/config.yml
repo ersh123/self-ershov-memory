@@ -1,6 +1,5 @@
-1|blank_issues_enabled: false
-2|contact_links:
-3|  - name: Security advisory
-4|    url: https://github.com/ersh123/self-ershov-memory/security/advisories/new
-5|    about: Report security issues privately instead of opening a public issue.
-6|
+blank_issues_enabled: false
+contact_links:
+  - name: Security advisory
+    url: https://github.com/ersh123/self-ershov-memory/security/advisories/new
+    about: Report security issues privately instead of opening a public issue.

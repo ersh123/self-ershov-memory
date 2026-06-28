@@ -43,19 +43,20 @@ llm = [
 
 [project.scripts]
 ershov = "hermes_dreaming.cli:main"
+self-ershov-memory = "self_ershov_memory.audit:main"
 hermes-ershov = "hermes_dreaming.cli:main"
 mnemos = "hermes_dreaming.cli:main"
 nightmem = "hermes_dreaming.cli:main"
 dreaming = "hermes_dreaming.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/ersh123/hermes-ershov"
-Repository = "https://github.com/ersh123/hermes-ershov"
-Issues = "https://github.com/ersh123/hermes-ershov/issues"
-Security = "https://github.com/ersh123/hermes-ershov/security/advisories/new"
+Homepage = "https://github.com/ersh123/self-ershov-memory"
+Repository = "https://github.com/ersh123/self-ershov-memory"
+Issues = "https://github.com/ersh123/self-ershov-memory/issues"
+Security = "https://github.com/ersh123/self-ershov-memory/security/advisories/new"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/hermes_dreaming", "src/hermes_ershov", "src/hermes_mnemos"]
+packages = ["src/hermes_dreaming", "src/hermes_ershov", "src/hermes_mnemos", "src/self_ershov_memory"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

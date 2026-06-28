@@ -519,3 +519,59 @@ def test_skill_sync_ignores_unreadable_skill_file_then_creates_missing_skill(
     assert audit.sync_skills([{"text": "opencode provider подключай по докам"}], dry_run=False) == 1
     assert "CREATED" in capsys.readouterr().out
     assert (skills_dir / "opencode-setup" / "SKILL.md").exists()
+
+
+
+def test_real_before_after_approval_loop_is_documented_and_enforced(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    state_db = tmp_path / "state.db"
+    _make_state_db(
+        state_db,
+        [
+            "запомни на будущее: логи в Telegram только кратко",
+            "зачем ты опять возвращаешь старый закрытый вопрос",
+        ],
+    )
+    user_md = tmp_path / "USER.md"
+    memory_md = tmp_path / "MEMORY.md"
+    before_user = "Нико профиль\n§\n"
+    before_memory = "АНТИПАТТЕРНЫ\n§\n"
+    user_md.write_text(before_user, encoding="utf-8")
+    memory_md.write_text(before_memory, encoding="utf-8")
+
+    monkeypatch.setattr(audit, "STATE_DB", state_db)
+    monkeypatch.setattr(audit, "USER_MD", user_md)
+    monkeypatch.setattr(audit, "MEMORY_MD", memory_md)
+    monkeypatch.setattr(audit, "SKILLS_DIR", tmp_path / "skills")
+    monkeypatch.setattr(audit, "SNAPSHOT_DIR", tmp_path / "snapshots")
+
+    assert audit.run_pipeline(mode="full", dry_run=True) is True
+    dry_run_output = capsys.readouterr().out
+    assert "DRY-RUN: would update USER.md and MEMORY.md" in dry_run_output
+    assert "New (non-duplicate) corrections: 2" in dry_run_output
+    assert user_md.read_text(encoding="utf-8") == before_user
+    assert memory_md.read_text(encoding="utf-8") == before_memory
+    assert not list((tmp_path / "snapshots").glob("*.bak"))
+
+    assert audit.run_pipeline(mode="full", dry_run=False) is True
+    execute_output = capsys.readouterr().out
+    after_user = user_md.read_text(encoding="utf-8")
+    after_memory = memory_md.read_text(encoding="utf-8")
+
+    assert "Snapshot saved:" in execute_output
+    assert "Created new corrections section" in execute_output
+    assert "запомни на будущее: логи в Telegram только кратко" in after_user
+    assert "зачем ты опять возвращаешь старый закрытый вопрос" in after_user
+    assert "логи/уведомления" in after_memory
+    assert "повтор старого" in after_memory
+    assert list((tmp_path / "snapshots").glob("USER.md.*.bak"))
+    assert list((tmp_path / "snapshots").glob("MEMORY.md.*.bak"))
+
+    evidence = Path("docs/before-after-approval.md").read_text(encoding="utf-8")
+    assert "## BEFORE" in evidence
+    assert "## APPROVAL" in evidence
+    assert "## AFTER" in evidence
+    assert "self-ershov-memory --dry-run --full" in evidence
+    assert "self-ershov-memory --execute --full" in evidence
+    assert "BEFORE files are unchanged after dry-run" in evidence

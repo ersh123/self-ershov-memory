@@ -10,16 +10,17 @@ def test_readme_documents_product_only_contract_and_approval_loop() -> None:
 
     assert "# self-ershov-memory" in text
     assert "## Before → approval → after" in text
+    assert "docs/before-after-approval.md" in text
     assert "Raw Hermes dialogues stay in `~/.hermes/state.db`" in text
     assert "`self-ershov-memory --dry-run --full`" in text
     assert "leaves files untouched" in text
     assert "`self-ershov-memory --execute --full`" in text
     assert "creates snapshots first" in text
     assert "## Test evidence" in text
-    assert "40 pytest tests passing" in text
+    assert "42 pytest tests passing" in text
     assert "100% coverage for `self_ershov_memory`" in text
     assert "--cov-fail-under=100" in text
-    assert "https://img.shields.io/badge/tests-40%20passing-brightgreen" in text
+    assert "https://img.shields.io/badge/tests-42%20passing-brightgreen" in text
 
 
 def test_readme_does_not_advertise_removed_legacy_cli_surface() -> None:
@@ -79,3 +80,16 @@ def test_public_docs_have_no_staged_memory_brand_leaks() -> None:
         text = path.read_text(encoding="utf-8")
         for phrase in forbidden:
             assert phrase not in text, path
+
+
+def test_before_after_approval_evidence_doc_is_real() -> None:
+    text = (REPO_ROOT / "docs" / "before-after-approval.md").read_text(encoding="utf-8")
+
+    assert "## Raw dialogue evidence" in text
+    assert "## BEFORE" in text
+    assert "## APPROVAL" in text
+    assert "## AFTER" in text
+    assert "self-ershov-memory --dry-run --full" in text
+    assert "self-ershov-memory --execute --full" in text
+    assert "BEFORE files are unchanged after dry-run" in text
+    assert "CI covers this exact loop" in text

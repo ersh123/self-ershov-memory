@@ -35,7 +35,7 @@ dev = [
   "twine>=6.0",
   "pip-audit>=2.10",
   "ruff>=0.15",
-  "zizmor>=1.25",
+  "zizmor>=1.26.1",
 ]
 llm = [
   "openai>=1.30.0",

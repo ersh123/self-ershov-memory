@@ -21,7 +21,9 @@ class DummyCtx:
 
 def load_root_plugin():
     root_init = Path(__file__).resolve().parents[1] / "__init__.py"
-    spec = importlib.util.spec_from_file_location("self_ershov_root_plugin_test", root_init)
+    spec = importlib.util.spec_from_file_location(
+        "self_ershov_root_plugin_test", root_init
+    )
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -36,7 +38,9 @@ def test_register_exposes_only_product_commands() -> None:
     module.register(ctx)
 
     assert set(ctx.cli_commands) == {"self-ershov-memory", "self-memory", "self-audit"}
-    assert all("Self Ershov Memory" in item["help"] for item in ctx.cli_commands.values())
+    assert all(
+        "Self Ershov Memory" in item["help"] for item in ctx.cli_commands.values()
+    )
     assert "ershov" not in ctx.cli_commands
 
 

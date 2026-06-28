@@ -62,6 +62,20 @@ uv run --locked --extra dev ruff check --select F401,F841,E731 __init__.py src t
 
 GitHub Actions repeats the package gates on Python 3.11, 3.12, and 3.13; CodeQL runs separately.
 
+## Architecture
+
+The CLI keeps a small compatibility facade in `audit.py`, while the implementation is split into focused modules:
+
+- `context.py` — `AuditContext` paths, limits, skill-topic mapping.
+- `db.py` — SQLite dialogue reads.
+- `cleaner.py` — compaction / attachment / machine-noise cleanup.
+- `analyzer.py` — correction extraction, topic classification, fuzzy deduplication.
+- `memory_store.py` — `USER.md` / `MEMORY.md` sections, snapshots, validation, compression.
+- `skills.py` — skill creation / sync.
+- `runner.py` — dry-run / execute orchestration.
+
+`AuditContext` allows custom state and memory directories without monkeypatching globals; legacy `self_ershov_memory.audit` functions remain available for plugin and test compatibility.
+
 ## Install
 
 ```bash

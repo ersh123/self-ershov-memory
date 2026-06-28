@@ -44,7 +44,9 @@ noise
         ("скриншоты не слать если не просил", {"скриншоты"}),
     ],
 )
-def test_classify_topic_maps_operator_corrections(text: str, expected: set[str]) -> None:
+def test_classify_topic_maps_operator_corrections(
+    text: str, expected: set[str]
+) -> None:
     assert expected <= audit.classify_topic(text)
 
 
@@ -80,7 +82,9 @@ def test_find_corrections_detects_rules_deduplicates_and_ignores_tasks() -> None
     assert all("README" not in c["text"] for c in corrections)
 
 
-def test_memory_sections_parse_dedup_format_and_compress(tmp_path: Path, monkeypatch) -> None:
+def test_memory_sections_parse_dedup_format_and_compress(
+    tmp_path: Path, monkeypatch
+) -> None:
     user_md = tmp_path / "USER.md"
     user_md.write_text(
         "intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- **Логи** — кратко\n- повтор старого — стоп\n§\n",
@@ -114,7 +118,9 @@ def test_memory_sections_parse_dedup_format_and_compress(tmp_path: Path, monkeyp
     assert out.read_text(encoding="utf-8") == "a\n§\nb\n§\n"
 
 
-def test_validate_snapshot_and_skill_sync_are_safe(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_validate_snapshot_and_skill_sync_are_safe(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
     snapshot_dir = tmp_path / "snapshots"
@@ -154,16 +160,22 @@ def test_validate_snapshot_and_skill_sync_are_safe(tmp_path: Path, monkeypatch, 
         dry_run=False,
     )
     assert execute_count == 1
-    assert "name: opencode-setup" in (skills_dir / "opencode-setup" / "SKILL.md").read_text(
-        encoding="utf-8"
-    )
+    assert "name: opencode-setup" in (
+        skills_dir / "opencode-setup" / "SKILL.md"
+    ).read_text(encoding="utf-8")
 
 
-def test_fetch_messages_and_run_pipeline_dry_run(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_fetch_messages_and_run_pipeline_dry_run(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     state_db = tmp_path / "state.db"
     conn = sqlite3.connect(state_db)
-    conn.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT, title TEXT, started_at REAL)")
-    conn.execute("CREATE TABLE messages (session_id TEXT, role TEXT, content TEXT, timestamp REAL)")
+    conn.execute(
+        "CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT, title TEXT, started_at REAL)"
+    )
+    conn.execute(
+        "CREATE TABLE messages (session_id TEXT, role TEXT, content TEXT, timestamp REAL)"
+    )
     conn.execute(
         "INSERT INTO sessions VALUES ('s1', 'telegram', 'audit session', strftime('%s','now'))"
     )
@@ -204,11 +216,17 @@ def test_fetch_messages_and_run_pipeline_dry_run(tmp_path: Path, monkeypatch, ca
     assert user_md.read_text(encoding="utf-8") == "intro\n§\n"
 
 
-def test_run_pipeline_execute_merges_memory_and_main_modes(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_run_pipeline_execute_merges_memory_and_main_modes(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     state_db = tmp_path / "state.db"
     conn = sqlite3.connect(state_db)
-    conn.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT, title TEXT, started_at REAL)")
-    conn.execute("CREATE TABLE messages (session_id TEXT, role TEXT, content TEXT, timestamp REAL)")
+    conn.execute(
+        "CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT, title TEXT, started_at REAL)"
+    )
+    conn.execute(
+        "CREATE TABLE messages (session_id TEXT, role TEXT, content TEXT, timestamp REAL)"
+    )
     conn.execute(
         "INSERT INTO sessions VALUES ('s1', 'telegram', 'audit session', strftime('%s','now'))"
     )
@@ -220,7 +238,10 @@ def test_run_pipeline_execute_merges_memory_and_main_modes(tmp_path: Path, monke
 
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
-    user_md.write_text("intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- логи — кратко\n§\nfooter\n§\n", encoding="utf-8")
+    user_md.write_text(
+        "intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- логи — кратко\n§\nfooter\n§\n",
+        encoding="utf-8",
+    )
     memory_md.write_text("АНТИПАТТЕРНЫ\n§\n", encoding="utf-8")
 
     monkeypatch.setattr(audit, "STATE_DB", state_db)
@@ -240,24 +261,33 @@ def test_run_pipeline_execute_merges_memory_and_main_modes(tmp_path: Path, monke
     assert audit.main(["--help"]) == 0
     assert "self-ershov-memory" in capsys.readouterr().out
 
-    monkeypatch.setattr(audit, "run_pipeline", lambda mode, dry_run: (mode, dry_run) == ("full", False))
+    monkeypatch.setattr(
+        audit, "run_pipeline", lambda mode, dry_run: (mode, dry_run) == ("full", False)
+    )
     assert audit.main(["--execute", "--full"]) == 0
     assert audit.main(["--dry-run", "--quick"]) == 1
 
 
-def test_connect_db_missing_file_returns_none(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_connect_db_missing_file_returns_none(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     monkeypatch.setattr(audit, "STATE_DB", tmp_path / "missing.db")
 
     assert audit.connect_db() is None
     assert "state.db not found" in capsys.readouterr().out
 
 
-
 def _make_state_db(path: Path, messages: list[str]) -> None:
     conn = sqlite3.connect(path)
-    conn.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT, title TEXT, started_at REAL)")
-    conn.execute("CREATE TABLE messages (session_id TEXT, role TEXT, content TEXT, timestamp REAL)")
-    conn.execute("INSERT INTO sessions VALUES ('s1', 'telegram', 'audit session', strftime('%s','now'))")
+    conn.execute(
+        "CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT, title TEXT, started_at REAL)"
+    )
+    conn.execute(
+        "CREATE TABLE messages (session_id TEXT, role TEXT, content TEXT, timestamp REAL)"
+    )
+    conn.execute(
+        "INSERT INTO sessions VALUES ('s1', 'telegram', 'audit session', strftime('%s','now'))"
+    )
     for idx, message in enumerate(messages):
         conn.execute(
             "INSERT INTO messages VALUES ('s1', 'user', ?, strftime('%s','now') + ?)",
@@ -267,18 +297,29 @@ def _make_state_db(path: Path, messages: list[str]) -> None:
     conn.close()
 
 
-def test_product_audit_edge_cases_cover_defensive_branches(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_product_audit_edge_cases_cover_defensive_branches(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     assert audit.clean_content("") == ""
     assert audit.clean_content(None) == ""
     assert audit.clean_content(123) == ""
-    assert audit.find_corrections([{"content": "short", "title": "t", "timestamp": 1}]) == []
+    assert (
+        audit.find_corrections([{"content": "short", "title": "t", "timestamp": 1}])
+        == []
+    )
     assert audit.read_memory_sections(tmp_path / "missing.md") == []
     assert audit.find_antipatterns_section(["intro", "nothing"]) is None
     assert audit.parse_existing_corrections(["intro"]) == (set(), set())
     assert audit.is_duplicate("abc def ghi", {"abc def ghi"})
     assert audit.snapshot(tmp_path / "missing.md") is None
-    assert audit.compress_corrections_section(["intro", "no corrections"]) == (["intro", "no corrections"], 0)
-    assert audit.compress_corrections_section(["КОРРЕКЦИИ ОТ НИКО\n- one"]) == (["КОРРЕКЦИИ ОТ НИКО\n- one"], 0)
+    assert audit.compress_corrections_section(["intro", "no corrections"]) == (
+        ["intro", "no corrections"],
+        0,
+    )
+    assert audit.compress_corrections_section(["КОРРЕКЦИИ ОТ НИКО\n- one"]) == (
+        ["КОРРЕКЦИИ ОТ НИКО\n- one"],
+        0,
+    )
 
     memory_md = tmp_path / "MEMORY.md"
     user_md = tmp_path / "USER.md"
@@ -286,12 +327,16 @@ def test_product_audit_edge_cases_cover_defensive_branches(tmp_path: Path, monke
     user_md.write_text("ok", encoding="utf-8")
     monkeypatch.setattr(audit, "MEMORY_MD", memory_md)
     monkeypatch.setattr(audit, "USER_MD", user_md)
-    assert audit.validate_memory_files() == [f"MEMORY.md: {audit.MEMORY_LIMIT + 1} > {audit.MEMORY_LIMIT} chars"]
+    assert audit.validate_memory_files() == [
+        f"MEMORY.md: {audit.MEMORY_LIMIT + 1} > {audit.MEMORY_LIMIT} chars"
+    ]
 
-    formatted = audit.format_corrections_entry([
-        {"text": ""},
-        {"text": "Никита: " + "проверяй " * 40},
-    ])
+    formatted = audit.format_corrections_entry(
+        [
+            {"text": ""},
+            {"text": "Никита: " + "проверяй " * 40},
+        ]
+    )
     assert "..." in formatted
 
     noisy = "КОРРЕКЦИИ ОТ НИКО\nnot a bullet\n" + "\n".join(["- **A** — one"] * 31)
@@ -301,7 +346,9 @@ def test_product_audit_edge_cases_cover_defensive_branches(tmp_path: Path, monke
     assert capsys.readouterr().out == ""
 
 
-def test_skill_sync_execute_existing_and_unreadable_skill_branch(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_skill_sync_execute_existing_and_unreadable_skill_branch(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     skills_dir = tmp_path / "skills"
     broken = skills_dir / "broken" / "SKILL.md"
     broken.parent.mkdir(parents=True)
@@ -324,7 +371,9 @@ def test_skill_sync_execute_existing_and_unreadable_skill_branch(tmp_path: Path,
     assert "up-to-date" in capsys.readouterr().out
 
 
-def test_run_pipeline_missing_db_and_no_messages(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_run_pipeline_missing_db_and_no_messages(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     monkeypatch.setattr(audit, "STATE_DB", tmp_path / "missing.db")
     assert audit.run_pipeline(mode="quick", dry_run=True) is False
 
@@ -337,14 +386,17 @@ def test_run_pipeline_missing_db_and_no_messages(tmp_path: Path, monkeypatch, ca
     assert "No messages found" in output
 
 
-def test_run_pipeline_no_new_corrections_compresses_and_warns(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_run_pipeline_no_new_corrections_compresses_and_warns(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     state_db = tmp_path / "state.db"
     _make_state_db(state_db, ["запомни на будущее: повтор старого не поднимать"])
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
     duplicate_lines = "\n".join(["- **Повтор** — старое"] * 35)
     user_md.write_text(
-        f"intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n{duplicate_lines}\n§\n" + "u" * (audit.USER_LIMIT + 1),
+        f"intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n{duplicate_lines}\n§\n"
+        + "u" * (audit.USER_LIMIT + 1),
         encoding="utf-8",
     )
     memory_md.write_text("АНТИПАТТЕРНЫ\n§\n", encoding="utf-8")
@@ -378,7 +430,9 @@ def test_run_pipeline_execute_creates_section_and_handles_validation_overflow(
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
     user_md.write_text("intro\n§\nfooter\n§\n", encoding="utf-8")
-    memory_md.write_text("АНТИПАТТЕРНЫ\n§\n" + "m" * (audit.MEMORY_LIMIT + 1), encoding="utf-8")
+    memory_md.write_text(
+        "АНТИПАТТЕРНЫ\n§\n" + "m" * (audit.MEMORY_LIMIT + 1), encoding="utf-8"
+    )
 
     monkeypatch.setattr(audit, "STATE_DB", state_db)
     monkeypatch.setattr(audit, "USER_MD", user_md)
@@ -397,9 +451,13 @@ def test_run_pipeline_execute_creates_section_and_handles_validation_overflow(
     assert "путаница VPS/Desktop" in memory_text
 
 
-def test_run_pipeline_dry_run_lists_more_than_ten_and_checks_skills(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_run_pipeline_dry_run_lists_more_than_ten_and_checks_skills(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     state_db = tmp_path / "state.db"
-    _make_state_db(state_db, [f"зачем ты опять делаешь ошибку номер {i}" for i in range(12)])
+    _make_state_db(
+        state_db, [f"зачем ты опять делаешь ошибку номер {i}" for i in range(12)]
+    )
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
     user_md.write_text("intro\n§\n", encoding="utf-8")
@@ -417,12 +475,17 @@ def test_run_pipeline_dry_run_lists_more_than_ten_and_checks_skills(tmp_path: Pa
     assert "--- Skills check (dry-run) ---" in output
 
 
-def test_run_pipeline_existing_section_topic_filter_no_merge(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_run_pipeline_existing_section_topic_filter_no_merge(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     state_db = tmp_path / "state.db"
     _make_state_db(state_db, ["зачем ты опять возвращаешь старый закрытый вопрос"])
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
-    user_md.write_text("intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- повтор старого уже закрыт\n§\n", encoding="utf-8")
+    user_md.write_text(
+        "intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- повтор старого уже закрыт\n§\n",
+        encoding="utf-8",
+    )
     memory_md.write_text("АНТИПАТТЕРНЫ\n§\n", encoding="utf-8")
 
     monkeypatch.setattr(audit, "STATE_DB", state_db)
@@ -441,13 +504,17 @@ def test_module_entrypoint_import_is_covered() -> None:
     assert module.main is audit.main
 
 
-
-def test_run_pipeline_no_new_corrections_dry_run_checks_skills(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_run_pipeline_no_new_corrections_dry_run_checks_skills(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
     state_db = tmp_path / "state.db"
     _make_state_db(state_db, ["запомни на будущее: повтор старого не поднимать"])
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
-    user_md.write_text("intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- повтор старого не поднимать\n§\n", encoding="utf-8")
+    user_md.write_text(
+        "intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- повтор старого не поднимать\n§\n",
+        encoding="utf-8",
+    )
     memory_md.write_text("АНТИПАТТЕРНЫ\n§\n", encoding="utf-8")
 
     monkeypatch.setattr(audit, "STATE_DB", state_db)
@@ -470,7 +537,9 @@ def test_run_pipeline_merge_skips_malformed_and_existing_topic_then_compresses_u
     user_md = tmp_path / "USER.md"
     memory_md = tmp_path / "MEMORY.md"
     user_md.write_text(
-        "intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- логи уже кратко\n" + "\n".join(["- **D** — x"] * 35) + "\n§\n",
+        "intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- логи уже кратко\n"
+        + "\n".join(["- **D** — x"] * 35)
+        + "\n§\n",
         encoding="utf-8",
     )
     memory_md.write_text("АНТИПАТТЕРНЫ\n§\n", encoding="utf-8")
@@ -490,7 +559,6 @@ def test_run_pipeline_merge_skips_malformed_and_existing_topic_then_compresses_u
     assert audit.run_pipeline(mode="full", dry_run=False) is True
     output = capsys.readouterr().out
     assert "Auto-compressed USER.md" in output
-
 
 
 def test_format_entry_skips_empty_after_nikita_prefix() -> None:
@@ -516,10 +584,14 @@ def test_skill_sync_ignores_unreadable_skill_file_then_creates_missing_skill(
     monkeypatch.setattr(audit, "SKILLS_DIR", skills_dir)
     monkeypatch.setattr(Path, "read_text", flaky_read)
 
-    assert audit.sync_skills([{"text": "opencode provider подключай по докам"}], dry_run=False) == 1
+    assert (
+        audit.sync_skills(
+            [{"text": "opencode provider подключай по докам"}], dry_run=False
+        )
+        == 1
+    )
     assert "CREATED" in capsys.readouterr().out
     assert (skills_dir / "opencode-setup" / "SKILL.md").exists()
-
 
 
 def test_real_before_after_approval_loop_is_documented_and_enforced(
@@ -606,7 +678,7 @@ def test_duplicate_detection_keeps_more_specific_rules() -> None:
 def test_dedup_and_noise_helpers_cover_edge_branches() -> None:
     assert not audit.is_machine_noise_line("short {json}")
     assert audit.is_machine_noise_line("[" + "x" * 301 + "]")
-    assert audit.is_machine_noise_line("{" + "[]:\",," * 40 + "}")
+    assert audit.is_machine_noise_line("{" + '[]:",,' * 40 + "}")
     assert not audit.is_machine_noise_line(
         "Always keep this long English operator correction because it explains OAuth callback behavior, retry diagnostics, and memory policy."
     )
@@ -616,8 +688,99 @@ def test_dedup_and_noise_helpers_cover_edge_branches() -> None:
     assert not audit.is_duplicate("", {"existing"})
     assert not audit.is_duplicate("new rule", {""})
     assert audit.is_duplicate("same correction", {"same correction"})
-    assert audit.is_duplicate("keep the callback retry diagnostics", {"keep callback retry diagnostic"})
+    assert audit.is_duplicate(
+        "keep the callback retry diagnostics", {"keep callback retry diagnostic"}
+    )
     assert audit.is_duplicate("логи коротко в Telegram", {"логи коротко"})
     assert audit.is_duplicate("abc def ghi", {"abc def ghi plus"})
     assert audit.is_duplicate("повтор", {"повтор старого"})
-    assert audit.is_duplicate("alpha beta gamma delta unique", {"alpha beta gamma delta other"})
+    assert audit.is_duplicate(
+        "alpha beta gamma delta unique", {"alpha beta gamma delta other"}
+    )
+
+
+def test_run_pipeline_accepts_explicit_audit_context(tmp_path: Path) -> None:
+    state_db = tmp_path / "custom-state.db"
+    _make_state_db(state_db, ["запомни на будущее: кастомный контекст без monkeypatch"])
+    user_md = tmp_path / "memory" / "USER.md"
+    memory_md = tmp_path / "memory" / "MEMORY.md"
+    user_md.parent.mkdir()
+    user_md.write_text("intro\n§\n", encoding="utf-8")
+    memory_md.write_text("АНТИПАТТЕРНЫ\n§\n", encoding="utf-8")
+
+    context = audit.AuditContext(
+        state_db=state_db,
+        user_md=user_md,
+        memory_md=memory_md,
+        snapshot_dir=tmp_path / "memory" / "snapshots",
+        skills_dir=tmp_path / "skills",
+    )
+
+    assert audit.run_pipeline(mode="quick", dry_run=True, context=context) is True
+    assert user_md.read_text(encoding="utf-8") == "intro\n§\n"
+    assert not (tmp_path / "memory" / "snapshots").exists()
+
+
+def test_audit_context_from_home_builds_default_paths(tmp_path: Path) -> None:
+    context = audit.AuditContext.from_home(tmp_path)
+
+    assert context.state_db == tmp_path / ".hermes" / "state.db"
+    assert context.user_md == tmp_path / ".hermes" / "memories" / "USER.md"
+    assert context.memory_md == tmp_path / ".hermes" / "memories" / "MEMORY.md"
+    assert context.snapshot_dir == tmp_path / ".hermes" / "memories" / "snapshots"
+    assert context.skills_dir == tmp_path / ".hermes" / "skills"
+
+
+def test_runner_skips_non_bullet_formatted_lines(tmp_path: Path, monkeypatch) -> None:
+    from self_ershov_memory import runner
+
+    state_db = tmp_path / "state.db"
+    _make_state_db(state_db, ["запомни на будущее: новые уникальные логи без шума"])
+    user_md = tmp_path / "USER.md"
+    memory_md = tmp_path / "MEMORY.md"
+    user_md.write_text(
+        "intro\n§\nКОРРЕКЦИИ ОТ НИКО (old)\n- **Ресерч** — глубоко\n§\n",
+        encoding="utf-8",
+    )
+    memory_md.write_text("АНТИПАТТЕРНЫ\n§\n", encoding="utf-8")
+    context = audit.AuditContext(
+        state_db=state_db,
+        user_md=user_md,
+        memory_md=memory_md,
+        snapshot_dir=tmp_path / "snapshots",
+        skills_dir=tmp_path / "skills",
+    )
+
+    monkeypatch.setattr(
+        runner,
+        "format_corrections_entry",
+        lambda corrections: "КОРРЕКЦИИ ОТ НИКО\nnot a bullet\n- keep logs short",
+    )
+
+    assert (
+        runner.run_pipeline(context, mode="quick", dry_run=False, log=lambda msg: None)
+        is True
+    )
+    text = user_md.read_text(encoding="utf-8")
+    assert "not a bullet" not in text
+    assert "keep logs short" in text
+
+
+def test_runner_skips_memory_antipattern_update_when_no_target_section(
+    tmp_path: Path,
+) -> None:
+    from self_ershov_memory import runner
+
+    memory_md = tmp_path / "MEMORY.md"
+    memory_md.write_text("intro\n§\n", encoding="utf-8")
+    context = audit.AuditContext(
+        state_db=tmp_path / "state.db",
+        user_md=tmp_path / "USER.md",
+        memory_md=memory_md,
+        snapshot_dir=tmp_path / "snapshots",
+        skills_dir=tmp_path / "skills",
+    )
+
+    runner._apply_memory_antipatterns(context, ["intro"], [{"text": "neutral text"}])
+
+    assert memory_md.read_text(encoding="utf-8") == "intro\n§\n"

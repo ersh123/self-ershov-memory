@@ -17,6 +17,9 @@ def test_readme_documents_product_only_contract_and_approval_loop() -> None:
     assert "`self-ershov-memory --execute --full`" in text
     assert "creates snapshots first" in text
     assert "## Test evidence" in text
+    assert "## Architecture" in text
+    assert "`AuditContext` allows custom state and memory directories" in text
+    assert "`runner.py` — dry-run / execute orchestration" in text
     assert "pytest suite passing" in text
     assert "42 pytest tests passing" not in text
     assert "100% coverage for `self_ershov_memory`" in text
@@ -119,7 +122,9 @@ def test_before_after_approval_evidence_doc_is_real() -> None:
 def test_package_and_plugin_versions_are_synced() -> None:
     import tomllib
 
-    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    pyproject = tomllib.loads(
+        (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
     plugin = (REPO_ROOT / "plugin.yaml").read_text(encoding="utf-8")
     plugin_version = next(
         line.split(":", 1)[1].strip().strip("'\"")
@@ -128,3 +133,22 @@ def test_package_and_plugin_versions_are_synced() -> None:
     )
 
     assert pyproject["project"]["version"] == plugin_version
+
+
+def test_source_is_split_into_audit_modules() -> None:
+    expected_modules = (
+        "context.py",
+        "db.py",
+        "cleaner.py",
+        "analyzer.py",
+        "memory_store.py",
+        "skills.py",
+        "runner.py",
+    )
+    for module in expected_modules:
+        assert (REPO_ROOT / "src" / "self_ershov_memory" / module).exists(), module
+
+    audit_text = (REPO_ROOT / "src" / "self_ershov_memory" / "audit.py").read_text(
+        encoding="utf-8"
+    )
+    assert audit_text.count("def ") <= 26

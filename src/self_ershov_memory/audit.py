@@ -13,6 +13,7 @@ self-audit.py — Debi self-audit pipeline.
 import sqlite3
 import re
 import shutil
+from difflib import SequenceMatcher
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -84,19 +85,42 @@ def clean_content(text):
     text = re.sub(r'(?s)Session source:.*?(?:\n|$)', '', text)
     # Убрать [If you need a closer look... типы технических рекомендаций
     text = re.sub(r'(?s)\[If you need.*?\].*?(?:\n|$)', '', text)
-    # Убрать JSON/технические вставки — длинные строки без русских букв
+    # Убрать машинные артефакты, но сохранить английские коррекции, команды и код.
     lines = text.split('\n')
     cleaned = []
     for line in lines:
-        # Пропустить строки с соотношением символов < 5% русских
-        if line.strip():
-            ru_chars = len(re.findall(r'[а-яА-ЯёЁ]', line))
-            total_chars = len(line.strip())
-            if total_chars > 100 and ru_chars / total_chars < 0.05:
-                continue
+        stripped = line.strip()
+        if stripped and is_machine_noise_line(stripped):
+            continue
         cleaned.append(line)
     text = '\n'.join(cleaned)
     return text.strip()
+
+
+def is_machine_noise_line(line):
+    """Return True for serialized tool/attachment noise, not human English/code."""
+    if len(line) <= 100:
+        return False
+    lower = line.lower()
+    if line.startswith(("{", "[")) and any(
+        marker in lower
+        for marker in (
+            '"tool"',
+            '"data"',
+            '"image_url"',
+            '"screenshot"',
+            '"content"',
+            "vision_analyze",
+        )
+    ):
+        return True
+    alpha_chars = len(re.findall(r'[A-Za-zА-Яа-яЁё]', line))
+    dense_structural = sum(line.count(ch) for ch in '{}[]":,')
+    if dense_structural > 30 and alpha_chars / max(len(line), 1) < 0.35:
+        return True
+    if len(line) > 300 and " " not in line:
+        return True
+    return False
 
 def classify_topic(text):
     """Классифицировать коррекцию по теме."""
@@ -253,14 +277,58 @@ def parse_existing_corrections(sections):
             norms.add(essence.lower().strip())
     return norms, items
 
+def normalize_for_dedup(text):
+    """Normalize memory correction text for fuzzy deduplication."""
+    text = re.sub(r'[`*_>#+\-]', ' ', text.lower())
+    text = re.sub(r'[^0-9a-zа-яё]+', ' ', text)
+    return re.sub(r'\s+', ' ', text).strip()
+
+
+def semantic_tokens(text):
+    """Tokens worth comparing for correction deduplication."""
+    stopwords = {
+        "и", "в", "во", "на", "не", "но", "а", "я", "ты", "это", "как", "что",
+        "the", "a", "an", "to", "of", "in", "on", "and", "or", "not", "do", "don",
+    }
+    return [tok for tok in normalize_for_dedup(text).split() if len(tok) > 2 and tok not in stopwords]
+
+
 def is_duplicate(new_text, existing_norms):
-    """Проверить, дублируется ли новая коррекция."""
-    new_lower = new_text.lower().strip()
+    """Проверить, дублируется ли новая коррекция без потери уточняющих правил."""
+    new_norm = normalize_for_dedup(new_text)
+    if not new_norm:
+        return False
+    new_tokens = semantic_tokens(new_norm)
+    new_set = set(new_tokens)
     for existing in existing_norms:
-        # Если короткая норма уже есть в существующих
-        if len(existing) > 5 and existing in new_lower:
+        existing_norm = normalize_for_dedup(existing)
+        if not existing_norm:
+            continue
+        if new_norm == existing_norm:
             return True
-        if len(new_lower) > 5 and new_lower in existing:
+        ratio = SequenceMatcher(None, new_norm, existing_norm).ratio()
+        if ratio >= 0.86:
+            return True
+        existing_tokens = semantic_tokens(existing_norm)
+        existing_set = set(existing_tokens)
+        if not existing_set or not new_set:
+            continue
+        shared = existing_set & new_set
+        # Very short topic labels in memory (for example "повтор старого") should
+        # still suppress obvious expansions, but imperative rules can be refined.
+        action_tokens = {
+            "используй", "делай", "пиши", "проверяй", "добавляй", "удаляй",
+            "use", "write", "check", "add", "remove", "keep", "drop",
+        }
+        if len(existing_set) >= 3 and existing_set <= new_set:
+            return True
+        if len(new_set) >= 3 and new_set <= existing_set:
+            return True
+        if len(existing_set) <= 2 and existing_set <= new_set and not (existing_set & action_tokens):
+            return True
+        if len(new_set) <= 2 and new_set <= existing_set and not (new_set & action_tokens):
+            return True
+        if len(shared) >= 4 and len(shared) / max(len(existing_set), len(new_set)) >= 0.8:
             return True
     return False
 

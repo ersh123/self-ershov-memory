@@ -275,7 +275,7 @@ def test_product_audit_edge_cases_cover_defensive_branches(tmp_path: Path, monke
     assert audit.read_memory_sections(tmp_path / "missing.md") == []
     assert audit.find_antipatterns_section(["intro", "nothing"]) is None
     assert audit.parse_existing_corrections(["intro"]) == (set(), set())
-    assert audit.is_duplicate("abc def ghi", {"abc def ghi plus"})
+    assert audit.is_duplicate("abc def ghi", {"abc def ghi"})
     assert audit.snapshot(tmp_path / "missing.md") is None
     assert audit.compress_corrections_section(["intro", "no corrections"]) == (["intro", "no corrections"], 0)
     assert audit.compress_corrections_section(["КОРРЕКЦИИ ОТ НИКО\n- one"]) == (["КОРРЕКЦИИ ОТ НИКО\n- one"], 0)
@@ -575,3 +575,49 @@ def test_real_before_after_approval_loop_is_documented_and_enforced(
     assert "self-ershov-memory --dry-run --full" in evidence
     assert "self-ershov-memory --execute --full" in evidence
     assert "BEFORE files are unchanged after dry-run" in evidence
+
+
+def test_clean_content_preserves_english_and_code_corrections() -> None:
+    raw = """
+Always preserve English correction context when I say: keep OAuth logs short, keep retry diagnostics, and never drop the OAuth callback error explanation from memory.
+Use this code clue: if response.status_code == 401: refresh_token()
+{"tool": "result", "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+"""
+
+    cleaned = audit.clean_content(raw)
+
+    assert "Always preserve English correction context" in cleaned
+    assert "response.status_code == 401" in cleaned
+    assert "refresh_token()" in cleaned
+    assert '"tool":' not in cleaned
+
+
+def test_duplicate_detection_keeps_more_specific_rules() -> None:
+    assert not audit.is_duplicate(
+        "не используй логи в Telegram",
+        {"не используй логи"},
+    )
+    assert audit.is_duplicate(
+        "повтор старого надо прекращать",
+        {"повтор старого"},
+    )
+
+
+def test_dedup_and_noise_helpers_cover_edge_branches() -> None:
+    assert not audit.is_machine_noise_line("short {json}")
+    assert audit.is_machine_noise_line("[" + "x" * 301 + "]")
+    assert audit.is_machine_noise_line("{" + "[]:\",," * 40 + "}")
+    assert not audit.is_machine_noise_line(
+        "Always keep this long English operator correction because it explains OAuth callback behavior, retry diagnostics, and memory policy."
+    )
+
+    assert audit.normalize_for_dedup("**Keep logs!**") == "keep logs"
+    assert audit.semantic_tokens("do not keep the logs") == ["keep", "logs"]
+    assert not audit.is_duplicate("", {"existing"})
+    assert not audit.is_duplicate("new rule", {""})
+    assert audit.is_duplicate("same correction", {"same correction"})
+    assert audit.is_duplicate("keep the callback retry diagnostics", {"keep callback retry diagnostic"})
+    assert audit.is_duplicate("логи коротко в Telegram", {"логи коротко"})
+    assert audit.is_duplicate("abc def ghi", {"abc def ghi plus"})
+    assert audit.is_duplicate("повтор", {"повтор старого"})
+    assert audit.is_duplicate("alpha beta gamma delta unique", {"alpha beta gamma delta other"})

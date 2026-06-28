@@ -17,10 +17,12 @@ def test_readme_documents_product_only_contract_and_approval_loop() -> None:
     assert "`self-ershov-memory --execute --full`" in text
     assert "creates snapshots first" in text
     assert "## Test evidence" in text
-    assert "42 pytest tests passing" in text
+    assert "pytest suite passing" in text
+    assert "42 pytest tests passing" not in text
     assert "100% coverage for `self_ershov_memory`" in text
     assert "--cov-fail-under=100" in text
-    assert "https://img.shields.io/badge/tests-42%20passing-brightgreen" in text
+    assert "https://img.shields.io/badge/tests-passing-brightgreen" in text
+    assert "tests-42%20passing" not in text
     assert "assets/readme/hero-memory-factory.png" in text
     assert "assets/readme/memory-audit-pipeline.png" in text
     assert "assets/readme/before-approval-after.png" in text
@@ -112,3 +114,17 @@ def test_before_after_approval_evidence_doc_is_real() -> None:
     assert "self-ershov-memory --execute --full" in text
     assert "BEFORE files are unchanged after dry-run" in text
     assert "CI covers this exact loop" in text
+
+
+def test_package_and_plugin_versions_are_synced() -> None:
+    import tomllib
+
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    plugin = (REPO_ROOT / "plugin.yaml").read_text(encoding="utf-8")
+    plugin_version = next(
+        line.split(":", 1)[1].strip().strip("'\"")
+        for line in plugin.splitlines()
+        if line.startswith("version:")
+    )
+
+    assert pyproject["project"]["version"] == plugin_version

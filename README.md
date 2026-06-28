@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/ersh123/self-ershov-memory/actions/workflows/ci.yml/badge.svg)](https://github.com/ersh123/self-ershov-memory/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/ersh123/self-ershov-memory/actions/workflows/codeql.yml/badge.svg)](https://github.com/ersh123/self-ershov-memory/actions/workflows/codeql.yml)
-![tests](https://img.shields.io/badge/tests-42%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-passing-brightgreen)
 ![coverage](https://img.shields.io/badge/product%20coverage-100%25-brightgreen)
 
 Self-audit memory engine for Hermes operators. It reads Hermes dialogue history, extracts durable operator corrections, snapshots memory files, and updates `USER.md` / `MEMORY.md` only through explicit, reviewable runs.
@@ -52,7 +52,7 @@ Self-audit memory engine for Hermes operators. It reads Hermes dialogue history,
   <img src="assets/readme/test-evidence-dashboard.png" alt="Test evidence dashboard" width="100%">
 </p>
 
-Current product gate: **42 pytest tests passing** and **100% coverage for `self_ershov_memory` and the Hermes plugin wrapper**. Legacy staged-memory code is intentionally removed from the public package instead of being kept as dead compatibility surface.
+Current product gate: **pytest suite passing** and **100% coverage for `self_ershov_memory` and the Hermes plugin wrapper**. Legacy staged-memory code is intentionally removed from the public package instead of being kept as dead compatibility surface.
 
 ```bash
 uv run --locked --extra dev pytest -q

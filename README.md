@@ -123,6 +123,8 @@ uv run --locked --extra dev twine check --strict dist/*.whl dist/*.tar.gz
 - No secret values in docs, logs, or provider doctor output.
 - GitHub CLI credentials are for repository operations only, never LLM access.
 
+When the audit loop stalls — two fix rounds with no progress — see [`docs/stop-and-research-rule.md`](docs/stop-and-research-rule.md): stop, re-read the source, and check how others hit the same issue before grinding another pass.
+
 ## Release and testing gates
 
 The public package is intentionally narrow: one product CLI, one package, one memory self-audit loop. Release candidates must pass product coverage at 100%, package build, Twine metadata checks, CI, and CodeQL.
